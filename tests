@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+import subprocess
+from decimal import Decimal
+
+tests = \
+    [
+        {
+            "vector":              "AV:N/AC:L/Au:N/C:N/I:N/A:C",
+            "valid":               True,
+            "base_score":          7.8,
+            "temporal_score":      6.4,
+            "environmental_score": 9.2,
+        },
+        {
+            "vector":              "AV:N/AC:L/Au:N/C:C/I:C/A:C",
+            "valid":               True,
+            "base_score":          10.0,
+            "temporal_score":      8.3,
+            "environmental_score": "0-9.0",
+        },
+        {
+            "vector":              "av:n/ac:l/au:n/c:c/i:c/a:c",
+            "valid":               True,
+            "base_score":          10.0,
+            "temporal_score":      8.3,
+            "environmental_score": "0-9.0",
+            "cve":                 "CVE-2003-0818",
+        },
+        {
+            "vector":              "",
+            "valid":               False,
+        },
+        {
+            "vector":              "invalid",
+            "valid":               False,
+        },
+        {
+            "vector":              "AV:N/AC:L/Au:N/C:N/I:N/A:C"\
+                "/AV:N/AC:L/Au:N/C:N/I:N/A:C",
+            "valid":               False,
+        }
+    ]
+
+
+def result(vector, passed=True, detail=None):
+    print(
+        ('OK  ' if passed else 'FAIL')
+        + ' on "' + vector + '".'
+        + (' (' + detail + ')' if detail else ''))
+
+for test in tests:
+    vector = test['vector']
+    try:
+        output = subprocess.check_output(['./covuss', vector])
+    except Exception as e:
+        if test['valid']:
+            result(vector, passed=False, detail=str(e))
+        else:
+            result(vector, passed=True)
+        continue
+    if not test['valid']:
+        result(vector, passed=False, detail="Should have failed")
+        continue
+    try:
+        base_score=(Decimal(output.decode().strip()))
+    except Exception as e:
+        result(vector, passed=False, detail=str(e))
+        continue
+    if base_score == test['base_score']:
+        result(vector, passed=True)
+    else:
+        result(vector, passed=False, detail=str(base_score))
