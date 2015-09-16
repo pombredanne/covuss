@@ -1,13 +1,37 @@
 #!/usr/bin/env python
 
-import sys
+import sys, re
 
-def cvss_v2_score(cvss):
-    return len(cvss) % 11
+def parse(vector):
+    pieces = vector.split('/')
+    cvss = {}
+    possible_keys = ['AV', 'AC', 'Au', 'C', 'I', 'A']
+    for piece in pieces:
+        try:
+            (key, value) = piece.split(':')
+        except:
+            print('Invalid metric "' + piece + "'.")
+            sys.exit(1)
+        if key not in possible_keys:
+            print('Unknown metric "' + key + "'.")
+            sys.exit(1)
+        if key in cvss:
+            print('Duplicate metric "' + key + "'.")
+            sys.exit(1)
+        cvss[key] = value
+    return cvss
+
+def score(cvss):
+    print(cvss)
+    return 0
+
+def valid(vector):
+    return bool(re.match('^.*/.*$', vector))
 
 if len(sys.argv) == 1:
     print('No args')
 elif len(sys.argv) == 2:
-    print(cvss_v2_score(sys.argv[1]))
+    vector = sys.argv[1]
+    print(score(parse(vector)))
 else:
     print('Wrong usage')
