@@ -5,18 +5,42 @@ import sys, re
 def parse(vector):
     pieces = vector.split('/')
     cvss = {}
-    possible_keys = ['AV', 'AC', 'Au', 'C', 'I', 'A']
+    schema = {
+        # Base
+        'AV': ['L', 'A', 'N'],
+        'AC': ['H', 'M', 'L'],
+        'Au': ['M', 'S', 'N'],
+        'C': ['N', 'P', 'C'],
+        'I': ['N', 'P', 'C'],
+        'A': ['N', 'P', 'C'],
+        # Temporal
+        'E': ['U', 'POC', 'F', 'H', 'ND'],
+        'RL': ['OF', 'TF', 'W', 'U', 'ND'],
+        'RC': ['UC', 'UR', 'C', 'ND'],
+        # Environmental
+        'CDP': ['N', 'L', 'LM', 'MH', 'H', 'ND'],
+        'TD': ['N', 'L', 'M', 'H', 'ND'],
+        'CR': ['L', 'M', 'H', 'ND'],
+        'IR': ['L', 'M', 'H', 'ND'],
+        'AR': ['L', 'M', 'H', 'ND'],
+    }
     for piece in pieces:
         try:
             (key, value) = piece.split(':')
         except:
-            print('Invalid metric "' + piece + "'.")
+            print('Invalid metric "' + piece + '".')
             sys.exit(1)
-        if key not in possible_keys:
-            print('Unknown metric "' + key + "'.")
+        if key not in schema.keys():
+            print('Unknown metric "' + key + '".')
+            sys.exit(1)
+        if value not in schema[key]:
+            print(
+                'Invalid value "' + value
+                + '" for metric "' + key + '". '
+                + "Available values: " + str(schema[key]))
             sys.exit(1)
         if key in cvss:
-            print('Duplicate metric "' + key + "'.")
+            print('Duplicate metric "' + key + '".')
             sys.exit(1)
         cvss[key] = value
     return cvss

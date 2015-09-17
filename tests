@@ -28,6 +28,10 @@ tests = \
             "cve":                 "CVE-2003-0818",
         },
         {
+            "vector":              "AV:X/AC:X/Au:X/C:X/I:X/A:X",
+            "valid":               False,
+        },
+        {
             "vector":              "",
             "valid":               False,
         },
