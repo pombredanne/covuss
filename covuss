@@ -2,42 +2,43 @@
 
 import sys, re
 
+SCHEMA = {
+    # Base
+    'AV': ['L', 'A', 'N'],
+    'AC': ['H', 'M', 'L'],
+    'Au': ['M', 'S', 'N'],
+    'C': ['N', 'P', 'C'],
+    'I': ['N', 'P', 'C'],
+    'A': ['N', 'P', 'C'],
+    # Temporal
+    'E': ['U', 'POC', 'F', 'H', 'ND'],
+    'RL': ['OF', 'TF', 'W', 'U', 'ND'],
+    'RC': ['UC', 'UR', 'C', 'ND'],
+    # Environmental
+    'CDP': ['N', 'L', 'LM', 'MH', 'H', 'ND'],
+    'TD': ['N', 'L', 'M', 'H', 'ND'],
+    'CR': ['L', 'M', 'H', 'ND'],
+    'IR': ['L', 'M', 'H', 'ND'],
+    'AR': ['L', 'M', 'H', 'ND'],
+}
+
 def parse(vector):
     pieces = vector.split('/')
     cvss = {}
-    schema = {
-        # Base
-        'AV': ['L', 'A', 'N'],
-        'AC': ['H', 'M', 'L'],
-        'Au': ['M', 'S', 'N'],
-        'C': ['N', 'P', 'C'],
-        'I': ['N', 'P', 'C'],
-        'A': ['N', 'P', 'C'],
-        # Temporal
-        'E': ['U', 'POC', 'F', 'H', 'ND'],
-        'RL': ['OF', 'TF', 'W', 'U', 'ND'],
-        'RC': ['UC', 'UR', 'C', 'ND'],
-        # Environmental
-        'CDP': ['N', 'L', 'LM', 'MH', 'H', 'ND'],
-        'TD': ['N', 'L', 'M', 'H', 'ND'],
-        'CR': ['L', 'M', 'H', 'ND'],
-        'IR': ['L', 'M', 'H', 'ND'],
-        'AR': ['L', 'M', 'H', 'ND'],
-    }
     for piece in pieces:
         try:
             (key, value) = piece.split(':')
         except:
             print('Invalid metric "' + piece + '".')
             sys.exit(1)
-        if key not in schema.keys():
+        if key not in SCHEMA.keys():
             print('Unknown metric "' + key + '".')
             sys.exit(1)
-        if value not in schema[key]:
+        if value not in SCHEMA[key]:
             print(
                 'Invalid value "' + value
                 + '" for metric "' + key + '". '
-                + "Available values: " + str(schema[key]))
+                + "Available values: " + str(SCHEMA[key]))
             sys.exit(1)
         if key in cvss:
             print('Duplicate metric "' + key + '".')
@@ -46,8 +47,24 @@ def parse(vector):
     return cvss
 
 def score(cvss):
-    print(cvss)
-    return 0
+    access_vector_scoring = {'L': 0.395, 'N': 0.646, 'A': 1.0}
+    access_vector = access_vector_scoring[cvss['AV']]
+    access_complexity_scoring = {'H': 0.35, 'M': 0.61, 'L': 0.71}
+    access_complexity = access_vector_scoring[cvss['AC']]
+    authentication_scoring = {'M': 0.45, 'S': 0.56, 'N': 0.704}
+    authentication = authentication_scoring[cvss['Au']]
+    impact_scoring = {'N': 0.0, 'P': 0.275, 'C': 0.660}
+    confidentiality_impact = impact_scoring[cvss['C']]
+    integrity_impact       = impact_scoring[cvss['I']]
+    availabilty_impact     = impact_scoring[cvss['A']]
+    impact = 10.41 * (1 -
+        (1 - confidentiality_impact)
+        * (1 - integrity_impact)
+        * (1 - availabilty_impact))
+    exploitability = 20 * access_vector * access_complexity * authentication
+    f_impact = 0 if impact == 0 else 1.176
+    base_score = round(((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact, 1)
+    return base_score
 
 def valid(vector):
     return bool(re.match('^.*/.*$', vector))
