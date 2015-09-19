@@ -15,7 +15,7 @@ tests = [
     {"vector": "av:n/ac:l/au:n/c:c/i:c/a:c", "valid": False,
         "output": 'Unknown metric "av".'},
     {"vector": "AV:X/AC:X/Au:X/C:X/I:X/A:X", "valid": False,
-        "output": 'Invalid value "X" for metric "AV". '\
+        "output": 'Invalid value "X" for metric "AV". '
             'Available values: A, L, N'},
     {"vector": "", "valid": False, "output": 'Invalid metric "".'},
     {"vector": "invalid", "valid": False,
