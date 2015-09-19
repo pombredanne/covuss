@@ -63,9 +63,6 @@ def score(cvss):
         1)
     return base_score
 
-def valid(vector):
-    return bool(re.match('^.*/.*$', vector))
-
 if len(sys.argv) == 1:
     print('No args')
 elif len(sys.argv) == 2:
