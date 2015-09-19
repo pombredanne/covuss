@@ -7,41 +7,56 @@ tests = \
         {
             "vector":              "AV:N/AC:L/Au:N/C:N/I:N/A:C",
             "valid":               True,
-            "base_score":          7.8,
+            "output":              '7.8',
+            "rc":                  0,
         },
         {
             "vector":              "AV:N/AC:L/Au:N/C:C/I:C/A:C",
             "valid":               True,
-            "base_score":          10.0,
+            "output":              '10.0',
+            "rc":                  0,
         },
         {
             # lower case
             "vector":              "av:n/ac:l/au:n/c:c/i:c/a:c",
             "valid":               False,
+            "output":              'Unknown metric "av".',
+            "rc":                  1,
         },
         {
             # invalid values
             "vector":              "AV:X/AC:X/Au:X/C:X/I:X/A:X",
             "valid":               False,
+            "output":              'Invalid value "X" for metric "AV". '\
+                'Available values: A, L, N',
+            "rc":                  1,
         },
         {
             "vector":              "",
             "valid":               False,
+            "output":              'Invalid metric "".',
+            "rc":                  1,
         },
         {
             "vector":              "invalid",
             "valid":               False,
+            "output":              'Invalid metric "invalid".',
+            "rc":                  1,
         },
         {
             # duplicites
             "vector":              "AV:N/AC:L/Au:N/C:N/I:N/A:C"\
                 "/AV:N/AC:L/Au:N/C:N/I:N/A:C",
             "valid":               False,
+            "output":              'Duplicate metric "AV".',
+            "rc":                  1,
         },
         {
             # Missing base metric
             "vector":              "AV:N/AC:L/Au:N/C:C/A:C",
-            "valid":               False
+            "valid":               False,
+            "output":              "Missing required metrics: I",
+            "rc":                  1,
         },
     ]
 
@@ -54,23 +69,15 @@ def result(vector, passed=True, detail=None):
 
 for test in tests:
     vector = test['vector']
+    success = True
     try:
-        output = subprocess.check_output(['./covuss', vector])
-    except Exception as e:
-        if test['valid']:
-            result(vector, passed=False, detail=str(e))
-        else:
-            result(vector, passed=True)
-        continue
-    if not test['valid']:
-        result(vector, passed=False, detail="Should have failed")
-        continue
-    try:
-        base_score = float(output.decode().strip())
-    except Exception as e:
-        result(vector, passed=False, detail=str(e))
-        continue
-    if base_score == test['base_score']:
-        result(vector, passed=True)
+        output = subprocess.check_output(['./covuss', vector]).decode().strip()
+        rc = 0
+    except subprocess.CalledProcessError as e:
+        success = not test['valid']
+        output = e.output.decode().strip()
+        rc = e.returncode
+    if not success or test['output'] != output:
+        result(vector, passed=False, detail=output)
     else:
-        result(vector, passed=False, detail=str(base_score))
+        result(vector, passed=True)
