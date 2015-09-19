@@ -35,6 +35,18 @@ tests = \
             "rc":                  0,
         },
         {
+            "vector":              "AV:N/AC:M/Au:S/C:C/I:P/A:C/E:U/RL:TF/RC:C",
+            "valid":               True,
+            "output":              '6.3',
+            "rc":                  0,
+        },
+        {
+            "vector":              "AV:N/AC:M/Au:S/C:C/I:P/A:C/E:ND/RL:TF/RC:C",
+            "valid":               True,
+            "output":              '7.4',
+            "rc":                  0,
+        },
+        {
             # lower case
             "vector":              "av:n/ac:l/au:n/c:c/i:c/a:c",
             "valid":               False,
