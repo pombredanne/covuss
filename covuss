@@ -2,27 +2,26 @@
 
 import sys, re
 
-SCHEMA = {
-    # Base
-    'AV': ['L', 'A', 'N'],
-    'AC': ['H', 'M', 'L'],
-    'Au': ['M', 'S', 'N'],
-    'C': ['N', 'P', 'C'],
-    'I': ['N', 'P', 'C'],
-    'A': ['N', 'P', 'C'],
-    # Temporal
-    'E': ['U', 'POC', 'F', 'H', 'ND'],
-    'RL': ['OF', 'TF', 'W', 'U', 'ND'],
-    'RC': ['UC', 'UR', 'C', 'ND'],
-    # Environmental
-    'CDP': ['N', 'L', 'LM', 'MH', 'H', 'ND'],
-    'TD': ['N', 'L', 'M', 'H', 'ND'],
-    'CR': ['L', 'M', 'H', 'ND'],
-    'IR': ['L', 'M', 'H', 'ND'],
-    'AR': ['L', 'M', 'H', 'ND'],
+CVSSv2 = {
+    'AV': {'L': 0.395, 'A': 0.646, 'N': 1.000},
+    'AC': {'H': 0.350, 'M': 0.610, 'L': 0.710},
+    'Au': {'M': 0.450, 'S': 0.560, 'N': 0.704},
+    'C':  {'N': 0.000, 'P': 0.275, 'C': 0.660},
+    'I':  {'N': 0.000, 'P': 0.275, 'C': 0.660},
+    'A':  {'N': 0.000, 'P': 0.275, 'C': 0.660},
+
+    'E':  {'U':  0, 'POC': 0, 'F': 0, 'H':  0, 'ND': 0},
+    'RL': {'OF': 0, 'TF':  0, 'W': 0, 'U':  0, 'ND': 0},
+    'RC': {'UC': 0, 'UR':  0, 'C': 0, 'ND': 0},
+
+    'CDP': {'N': 0, 'L': 0, 'LM': 0, 'MH':  0, 'H':  0, 'ND': 0},
+    'TD':  {'N': 0, 'L': 0, 'M':  0,  'H':  0, 'ND': 0},
+    'CR':  {'L': 0, 'M': 0, 'H':  0,  'ND': 0},
+    'IR':  {'L': 0, 'M': 0, 'H':  0,  'ND': 0},
+    'AR':  {'L': 0, 'M': 0, 'H':  0,  'ND': 0},
 }
 
-def parse(vector):
+def parse_v2(vector):
     pieces = vector.split('/')
     cvss = {}
     for piece in pieces:
@@ -31,14 +30,14 @@ def parse(vector):
         except:
             print('Invalid metric "' + piece + '".')
             sys.exit(1)
-        if key not in SCHEMA.keys():
+        if key not in CVSSv2.keys():
             print('Unknown metric "' + key + '".')
             sys.exit(1)
-        if value not in SCHEMA[key]:
+        if value not in CVSSv2[key].keys():
             print(
                 'Invalid value "' + value
                 + '" for metric "' + key + '". '
-                + "Available values: " + str(SCHEMA[key]))
+                + "Available values: " + str(CVSSv2[key].keys()))
             sys.exit(1)
         if key in cvss:
             print('Duplicate metric "' + key + '".')
@@ -47,23 +46,21 @@ def parse(vector):
     return cvss
 
 def score(cvss):
-    access_vector_scoring = {'L': 0.395, 'A': 0.646, 'N': 1.0}
-    access_vector = access_vector_scoring[cvss['AV']]
-    access_complexity_scoring = {'H': 0.35, 'M': 0.61, 'L': 0.71}
-    access_complexity = access_complexity_scoring[cvss['AC']]
-    authentication_scoring = {'M': 0.45, 'S': 0.56, 'N': 0.704}
-    authentication = authentication_scoring[cvss['Au']]
-    impact_scoring = {'N': 0.0, 'P': 0.275, 'C': 0.660}
-    confidentiality_impact = impact_scoring[cvss['C']]
-    integrity_impact       = impact_scoring[cvss['I']]
-    availabilty_impact     = impact_scoring[cvss['A']]
+    access_vector          = CVSSv2['AV'][cvss['AV']]
+    access_complexity      = CVSSv2['AC'][cvss['AC']]
+    authentication         = CVSSv2['Au'][cvss['Au']]
+    confidentiality_impact = CVSSv2['C'][cvss['C']]
+    integrity_impact       = CVSSv2['I'][cvss['I']]
+    availabilty_impact     = CVSSv2['A'][cvss['A']]
     impact = 10.41 * (1 -
         (1 - confidentiality_impact)
         * (1 - integrity_impact)
         * (1 - availabilty_impact))
     exploitability = 20 * access_vector * access_complexity * authentication
     f_impact = 0 if impact == 0 else 1.176
-    base_score = round(((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact, 1)
+    base_score = round(
+        ((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact,
+        1)
     return base_score
 
 def valid(vector):
@@ -73,6 +70,6 @@ if len(sys.argv) == 1:
     print('No args')
 elif len(sys.argv) == 2:
     vector = sys.argv[1]
-    print(score(parse(vector)))
+    print(score(parse_v2(vector)))
 else:
     print('Wrong usage')
