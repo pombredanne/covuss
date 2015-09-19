@@ -176,6 +176,16 @@ def arg_handling():
     return parser.parse_args()
 
 
+def paged_print(str):
+    lines = str.split('\n')
+    i = 0
+    while i < len(lines):
+        print(lines[i])
+        i += 1
+        if i % 24 == 0:
+            input('-- (press enter)')
+
+
 def interactive():
     print("Let's build some CVSS!")
     cvss = {}
@@ -265,57 +275,359 @@ Low (L)         Specialized access conditions or extenuating circumstances do
             'metric': 'Au',
             'name': 'Authentication (Au)',
             'options': '[(M)ultiple, (S)ingle, (N)one, (?)]',
-            'help': 'Not yet available'},
+            'help': """
+This metric measures the number of times an attacker must authenticate to a
+target in order to exploit a vulnerability. This metric does not gauge the
+strength or complexity of the authentication process, only that an attacker is
+required to provide credentials before an exploit may occur. The fewer
+authentication instances that are required, the higher the vulnerability score.
+
+Multiple (M)    Exploiting the vulnerability requires that the attacker
+                authenticate two or more times, even if the same credentials
+                are used each time. An example is an attacker authenticating to
+                an operating system in addition to providing credentials to
+                access an application hosted on that system.
+
+Single (S)      The vulnerability requires an attacker to be logged into the
+                system (such as at a command line or via a desktop session or
+                web interface).
+
+None (N)        Authentication is not required to exploit the vulnerability.
+
+The metric should be applied based on the authentication the attacker requires
+before launching an attack.  For example, if a mail server is vulnerable to a
+command that can be issued before a user authenticates, the metric should be
+scored as "None" because the attacker can launch the exploit before credentials
+are required.  If the vulnerable command is only available after successful
+authentication, then the vulnerability should be scored as "Single" or
+"Multiple," depending on how many instances of authentication must occur before
+issuing the command.
+"""},
         {
             'metric': 'C',
             'name': 'Confidentiality impact (C)',
             'options': '[(N)one, (P)artial, (C)omplete, (?)]',
-            'help': 'Not yet available'},
+            'help': """
+This metric measures the impact on confidentiality of a successfully exploited
+vulnerability. Confidentiality refers to limiting information access and
+disclosure to only authorized users, as well as preventing access by, or
+disclosure to, unauthorized ones. Increased confidentiality impact increases
+the vulnerability score.
+
+None (N)        There is no impact to the confidentiality of the system.
+
+Partial (P)     There is considerable informational disclosure. Access to some
+                system files is possible, but the attacker does not have
+                control over what is obtained, or the scope of the loss is
+                constrained. An example is a vulnerability that divulges only
+                certain tables in a database.
+
+Complete (C)    There is total information disclosure, resulting in all system
+                files being revealed. The attacker is able to read all of the
+                system's data (memory, files, etc.)
+"""},
         {
             'metric': 'I',
             'name': 'Integrity impact (I)',
             'options': '[(N)one, (P)artial, (C)omplete, (?)]',
-            'help': 'Not yet available'},
+            'help': """
+This metric measures the impact to integrity of a successfully exploited
+vulnerability. Integrity refers to the trustworthiness and guaranteed veracity
+of information. Increased integrity impact increases the vulnerability score.
+
+None (N)        There is no impact to the integrity of the system.
+
+Partial (P)     Modification of some system files or information is possible,
+                but the attacker does not have control over what can be
+                modified, or the scope of what the attacker can affect is
+                limited. For example, system or application files may be
+                overwritten or modified, but either the attacker has no control
+                over which files are affected or the attacker can modify files
+                within only a limited context or scope.
+
+Complete (C)    There is a total compromise of system integrity. There is a
+                complete loss of system protection, resulting in the entire
+                system being compromised. The attacker is able to modify any
+                files on the target system.
+"""},
         {
             'metric': 'A',
-            'name': 'Integrity impact (A)',
+            'name': 'Availability impact (A)',
             'options': '[(N)one, (P)artial, (C)omplete, (?)]',
-            'help': 'Not yet available'}
+            'help': """
+This metric measures the impact to availability of a successfully exploited
+vulnerability. Availability refers to the accessibility of information
+resources. Attacks that consume network bandwidth, processor cycles, or disk
+space all impact the availability of a system. Increased availability impact
+increases the vulnerability score.
+
+None (N)        There is no impact to the availability of the system.
+
+Partial (P)     There is reduced performance or interruptions in resource
+                availability. An example is a network-based flood attack that
+                permits a limited number of successful connections to an
+                Internet service.
+
+Complete (C)    There is a total shutdown of the affected resource. The
+                attacker can render the resource completely unavailable.
+"""}
     ]
+    temporal_help = """
+The threat posed by a vulnerability may change over time. Three such factors
+that CVSS captures are: confirmation of the technical details of a
+vulnerability, the remediation status of the vulnerability, and the
+availability of exploit code or techniques. Since temporal metrics are optional
+they each include a metric value that has no effect on the score. This value is
+used when the user feels the particular metric does not apply and wishes to
+"skip over" it.
+"""
     temporal_group = [
         {
             'metric': 'E',
             'name': 'Exploitability (E)',
             'options': '[(U)nproven, Proof-of-Concept (POC), (F)unctional, '
-                '(H)igh, Not Defined (ND)]',
-            'help': 'Not yet available'},
+                '(H)igh, Not Defined (ND), (?)]',
+            'help': """
+This metric measures the current state of exploit techniques or code
+availability. Public availability of easy-to-use exploit code increases the
+number of potential attackers by including those who are unskilled, thereby
+increasing the severity of the vulnerability.
+
+Initially, real-world exploitation may only be theoretical. Publication of
+proof of concept code, functional exploit code, or sufficient technical details
+necessary to exploit the vulnerability may follow. Furthermore, the exploit
+code available may progress from a proof-of-concept demonstration to exploit
+code that is successful in exploiting the vulnerability consistently. In severe
+cases, it may be delivered as the payload of a network-based worm or virus.
+The more easily a vulnerability can be exploited, the higher the vulnerability
+score.
+
+Unproven (U)    No exploit code is available, or an exploit is entirely
+                theoretical.
+
+Proof-of-Concept (POC)
+                Proof-of-concept exploit code or an attack demonstration that
+                is not practical for most systems is available. The code or
+                technique is not functional in all situations and may require
+                substantial modification by a skilled attacker.
+
+Functional (F)  Functional exploit code is available. The code works in most
+                situations where the vulnerability exists.
+
+High (H)        Either the vulnerability is exploitable by functional mobile
+                autonomous code, or no exploit is required (manual trigger) and
+                details are widely available. The code works in every
+                situation, or is actively being delivered via a mobile
+                autonomous agent (such as a worm or virus).
+
+Not Defined (ND)
+                Assigning this value to the metric will not influence the
+                score. It is a signal to the equation to skip this metric.
+"""},
         {
             'metric': 'RL',
             'name': 'Remedation Level (RL)',
             'options': '[Official Fix (OF), Temporary Fix (TF), (W)orkaround, '
-                '(U)navailable, Not Defined (ND)]',
-            'help': 'Not yet available'},
+                '(U)navailable, Not Defined (ND), (?)]',
+            'help': """
+The remediation level of a vulnerability is an important factor for
+prioritization. The typical vulnerability is unpatched when initially
+published. Workarounds or hotfixes may offer interim remediation until an
+official patch or upgrade is issued. Each of these respective stages adjusts
+the temporal score downwards, reflecting the decreasing urgency as remediation
+becomes final. The less official and permanent a fix, the higher the
+vulnerability score is.
+
+Official Fix (OF)
+                A complete vendor solution is available. Either the vendor has
+                issued an official patch, or an upgrade is available.
+
+Temporary Fix (TF)
+                There is an official but temporary fix available. This includes
+                instances where the vendor issues a temporary hotfix, tool, or
+                workaround.
+
+Workaround (W)  There is an unofficial, non-vendor solution available. In some
+                cases, users of the affected technology will create a patch of
+                their own or provide steps to work around or otherwise mitigate
+                the vulnerability.
+
+Unavailable (U) There is either no solution available or it is impossible to
+                apply.
+
+Not Defined (ND)
+                Assigning this value to the metric will not influence the
+                score. It is a signal to the equation to skip this metric.
+"""},
         {
             'metric': 'RC',
             'name': 'Report Confidence (RC)',
             'options': '[Unconfirmed (UC), Uncorroborated (UR), (C)onfirmed, '
-                'Not Defined (ND)]',
-            'help': 'Not yet available'}
+                'Not Defined (ND), (?)]',
+            'help': """
+This metric measures the degree of confidence in the existence of the
+vulnerability and the credibility of the known technical details. Sometimes,
+only the existence of vulnerabilities are publicized, but without specific
+details. The vulnerability may later be corroborated and then confirmed through
+acknowledgement by the author or vendor of the affected technology. The urgency
+of a vulnerability is higher when a vulnerability is known to exist with
+certainty. This metric also suggests the level of technical knowledge available
+to would-be attackers. The more a vulnerability is validated by the vendor or
+other reputable sources, the higher the score.
+
+Unconfirmed (UC)
+                There is a single unconfirmed source or possibly multiple
+                conflicting reports. There is little confidence in the validity
+                of the reports.
+                An example is a rumor that surfaces from the hacker
+                underground.
+
+Uncorroborated (UR)
+                There are multiple non-official sources, possibly including
+                independent security companies or research organizations. At
+                this point there may be conflicting technical details or some
+                other lingering ambiguity.
+
+Confirmed (C)   The vulnerability has been acknowledged by the vendor or author
+                of the affected technology. The vulnerability may also be
+                Confirmed when its existence is confirmed from an external
+                event such as publication of functional or proof-of-concept
+                exploit code or widespread exploitation.
+
+Not Defined (ND)
+                Assigning this value to the metric will not influence the
+                score. It is a signal to the equation to skip this metric.
+"""}
     ]
-    common_options = '[(L)ow, (M)edium, (H)igh, Not Defined (ND)]'
-    common_help = 'Not yet available'
+    common_options = '[(L)ow, (M)edium, (H)igh, Not Defined (ND), (?)]'
+    common_help = """
+These metrics enable the analyst to customize the CVSS score depending on the
+importance of the affected IT asset to a users organization, measured in terms
+of confidentiality, integrity, and availability, That is, if an IT asset
+supports a business function for which availability is most important, the
+analyst can assign a greater value to availability, relative to confidentiality
+and integrity. Each security requirement has three possible values: low,
+medium, or high.
+
+The full effect on the environmental score is determined by the corresponding
+base impact metrics (please note that the base confidentiality, integrity and
+availability impact metrics, themselves, are not changed). That is, these
+metrics modify the environmental score by reweighting the (base)
+confidentiality, integrity, and availability impact metrics. For example, the
+confidentiality impact (C) metric has increased weight if the confidentiality
+requirement (CR) is high. Likewise, the confidentiality impact metric has
+decreased weight if the confidentiality requirement is low. The confidentiality
+impact metric weighting is neutral if the confidentiality requirement is
+medium. This same logic is applied to the integrity and availability
+requirements.
+
+Note that the confidentiality requirement will not affect the environmental
+score if the (base) confidentiality impact is set to none. Also, increasing the
+confidentiality requirement from medium to high will not change the
+environmental score when the (base) impact metrics are set to complete. This is
+because the impact sub score (part of the base score that calculates impact) is
+already at a maximum value of 10.
+
+The greater the security requirement, the higher the score (remember that
+medium is considered the default). These metrics will modify the score as much
+as plus or minus 2.5.
+
+Low (L)         Loss of [confidentiality | integrity | availability] is likely
+                to have only a limited adverse effect on the organization or
+                individuals associated with the organization (e.g., employees,
+                customers).
+
+Medium (M)      Loss of [confidentiality | integrity | availability] is likely
+                to have a serious adverse effect on the organization or
+                individuals associated with the organization (e.g., employees,
+                customers).
+
+High (H)        Loss of [confidentiality | integrity | availability] is likely
+                to have a catastrophic adverse effect on the organization or
+                individuals associated with the organization (e.g., employees,
+                customers).
+
+Not Defined (ND)
+                Assigning this value to the metric will not influence the
+                score. It is a signal to the equation to skip this metric.
+"""
+    environmental_help = """
+Different environments can have an immense bearing on the risk that a
+vulnerability poses to an organization and its stakeholders. The CVSS
+environmental metric group captures the characteristics of a vulnerability that
+are associated with a user's IT environment. Since environmental metrics are
+optional they each include a metric value that has no effect on the score. This
+value is used when the user feels the particular metric does not apply and
+wishes to "skip over" it.
+"""
     environmental_group = [
         {
             'metric': 'CDP',
             'name': 'Collateral Damage Potential (CDP)',
             'options': '[(N)one, (L)ow, Low-Medium (LM), Medium-High (MH), '
-                '(H)igh, Not Defined (ND)]',
-            'help': 'Not yet available'},
+                '(H)igh, Not Defined (ND), (?)]',
+            'help': """
+This metric measures the potential for loss of life or physical assets through
+damage or theft of property or equipment.  The metric may also measure economic
+loss of productivity or revenue. Naturally, the greater the damage potential,
+the higher the vulnerability score.
+
+None (N)        There is no potential for loss of life, physical assets,
+                productivity or revenue.
+
+Low (L)         A successful exploit of this vulnerability may result in slight
+                physical or property damage. Or, there may be a slight loss of
+                revenue or productivity to the organization.
+
+Low-Medium (LM) A successful exploit of this vulnerability may result in
+                moderate physical or property damage. Or, there may be a
+                moderate loss of revenue or productivity to the organization.
+
+Medium-High (MH)
+                A successful exploit of this vulnerability may result in
+                significant physical or property damage or loss. Or, there may
+                be a significant loss of revenue or productivity.
+
+High (H)        A successful exploit of this vulnerability may result in
+                catastrophic physical or property damage and loss. Or, there
+                may be a catastrophic loss of revenue or productivity.
+
+Not Defined (ND)
+                Assigning this value to the metric will not influence the
+                score. It is a signal to the equation to skip this metric.
+
+Clearly, each organization must determine for themselves the precise meaning of
+"slight, moderate, significant, and catastrophic."
+"""},
         {
             'metric': 'TD',
             'name': 'Target Distribution (TD)',
-            'options': '[(N)one, (L)ow, (M)edium, (H)igh, Not Defined (ND)]',
-            'help': 'Not yet available'},
+            'options': '[(N)one, (L)ow, (M)edium, (H)igh, Not Defined (ND), '
+                '(?)]',
+            'help': """
+This metric measures the proportion of vulnerable systems. It is meant as an
+environment-specific indicator in order to approximate the percentage of
+systems that could be affected by the vulnerability. The greater the proportion
+of vulnerable systems, the higher the score.
+
+None (N)        No target systems exist, or targets are so highly specialized
+                that they only exist in a laboratory setting. Effectively 0% of
+                the environment is at risk.
+
+Low (L)         Targets exist inside the environment, but on a small scale.
+                Between 1% - 25% of the total environment is at risk.
+
+Medium (M)      Targets exist inside the environment, but on a medium scale.
+                Between 26% - 75% of the total environment is at risk.
+
+High (H)        Targets exist inside the environment on a considerable scale.
+                Between 76% - 100% of the total environment is considered at
+                risk.
+
+Not Defined (ND)
+                Assigning this value to the metric will not influence the
+                score. It is a signal to the equation to skip this metric.
+"""},
         {
             'metric': 'CR',
             'name': 'Confidentiality Requirement (CR)',
@@ -336,31 +648,35 @@ Low (L)         Specialized access conditions or extenuating circumstances do
         for metric in group:
             while metric['metric'] not in cvss:
                 prompt = metric['name'] + ' ' + metric['options'] + ': '
-                value = input(prompt).strip()
-                if value == 'q':
+                value = input(prompt).strip().upper()
+                if value == 'Q':
                     sys.exit(0)
                 if value == '?':
-                    print(metric['help'])
+                    paged_print(metric['help'])
                     continue
                 if value not in CVSSv2[metric['metric']]:
                     print('Invalid value. Please choose from given options.')
                 else:
                     cvss[metric['metric']] = value
     go_through_group(base_group)
-    def continue_with(group_name):
+    def continue_with(group_name, group_help):
         while True:
             value = input(
-                '\nContinue with (optional) Temporal metrics group? [y/N]: ')
-            if value == 'q':
+                '\nContinue with (optional) ' + group_name
+                + ' metrics group? [y/N/?]: ').strip().upper()
+            if value == 'Q':
                 sys.exit(0)
-            if value not in ['y', 'Y', 'n', 'N', '']:
+            if value == '?':
+                paged_print(group_help)
+                continue
+            if value not in ['Y', 'N', '']:
                 print("Sorry, I don't understand.")
             else:
                 break
         return value in ['y', 'Y']
-    if continue_with('Temporal'):
+    if continue_with('Temporal', temporal_help):
         go_through_group(temporal_group)
-    if continue_with('Environmental'):
+    if continue_with('Environmental', environmental_help):
         go_through_group(environmental_group)
     parse_v2_fill_not_defined(cvss)
     print('Vector: ' + cvss_v2_to_vector(cvss))
@@ -375,6 +691,7 @@ def main():
         cvss = parse_v2(args.vector)
     elif args.interactive:
         cvss = interactive()
+        print()
     overall_cvss_score = score_v2(cvss)
     if DETAIL_FLAG:
         print('Overall CVSS score:' + str(overall_cvss_score))
