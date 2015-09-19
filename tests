@@ -9,24 +9,16 @@ tests = \
             "vector":              "AV:N/AC:L/Au:N/C:N/I:N/A:C",
             "valid":               True,
             "base_score":          7.8,
-            "temporal_score":      6.4,
-            "environmental_score": 9.2,
         },
         {
             "vector":              "AV:N/AC:L/Au:N/C:C/I:C/A:C",
             "valid":               True,
             "base_score":          10.0,
-            "temporal_score":      8.3,
-            "environmental_score": "0-9.0",
         },
         {
             # lower case
             "vector":              "av:n/ac:l/au:n/c:c/i:c/a:c",
-            "valid":               True,
-            "base_score":          10.0,
-            "temporal_score":      8.3,
-            "environmental_score": "0-9.0",
-            "cve":                 "CVE-2003-0818",
+            "valid":               False,
         },
         {
             # invalid values

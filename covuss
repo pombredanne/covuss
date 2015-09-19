@@ -47,10 +47,10 @@ def parse(vector):
     return cvss
 
 def score(cvss):
-    access_vector_scoring = {'L': 0.395, 'N': 0.646, 'A': 1.0}
+    access_vector_scoring = {'L': 0.395, 'A': 0.646, 'N': 1.0}
     access_vector = access_vector_scoring[cvss['AV']]
     access_complexity_scoring = {'H': 0.35, 'M': 0.61, 'L': 0.71}
-    access_complexity = access_vector_scoring[cvss['AC']]
+    access_complexity = access_complexity_scoring[cvss['AC']]
     authentication_scoring = {'M': 0.45, 'S': 0.56, 'N': 0.704}
     authentication = authentication_scoring[cvss['Au']]
     impact_scoring = {'N': 0.0, 'P': 0.275, 'C': 0.660}
