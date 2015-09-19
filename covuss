@@ -10,9 +10,9 @@ CVSSv2 = {
     'I':  {'N': 0.000, 'P': 0.275, 'C': 0.660},
     'A':  {'N': 0.000, 'P': 0.275, 'C': 0.660},
 
-    'E':  {'U':  0, 'POC': 0, 'F': 0, 'H':  0, 'ND': 0},
-    'RL': {'OF': 0, 'TF':  0, 'W': 0, 'U':  0, 'ND': 0},
-    'RC': {'UC': 0, 'UR':  0, 'C': 0, 'ND': 0},
+    'E':  {'U':  0.850, 'POC': 0.900, 'F': 0.950, 'H':  1.000, 'ND': 1.000},
+    'RL': {'OF': 0.870, 'TF':  0.900, 'W': 0.950, 'U':  1.000, 'ND': 1.000},
+    'RC': {'UC': 0.900, 'UR':  0.950, 'C': 1.000, 'ND': 1.000},
 
     'CDP': {'N': 0, 'L': 0, 'LM': 0, 'MH':  0, 'H':  0, 'ND': 0},
     'TD':  {'N': 0, 'L': 0, 'M':  0,  'H':  0, 'ND': 0},
@@ -70,7 +70,14 @@ def score_v2(cvss):
         ((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact,
         1)
     verbose('Base score:' + str(base_score))
-    return base_score
+    temporal_score = round(
+        base_score
+        * (cvss['E']  if 'E'  in cvss else CVSSv2['E']['ND'])
+        * (cvss['RL'] if 'RL' in cvss else CVSSv2['RL']['ND'])
+        * (cvss['RC'] if 'RC' in cvss else CVSSv2['RC']['ND'])
+        , 1)
+    verbose('Temporal score:' + str(temporal_score))
+    return temporal_score
 
 if len(sys.argv) == 1:
     print('No args')
