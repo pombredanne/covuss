@@ -47,7 +47,7 @@ def parse_v2(vector):
         if key in cvss:
             print('Duplicate metric "' + key + '".')
             sys.exit(1)
-        cvss[key] = value
+        cvss[key] = CVSSv2[key][value]
     required_metrics = ['AV', 'AC', 'Au', 'C', 'I', 'A']
     for given_metric in cvss.keys():
         if given_metric in required_metrics:
@@ -58,18 +58,12 @@ def parse_v2(vector):
     return cvss
 
 def score_v2(cvss):
-    access_vector          = CVSSv2['AV'][cvss['AV']]
-    access_complexity      = CVSSv2['AC'][cvss['AC']]
-    authentication         = CVSSv2['Au'][cvss['Au']]
-    confidentiality_impact = CVSSv2['C'][cvss['C']]
-    integrity_impact       = CVSSv2['I'][cvss['I']]
-    availabilty_impact     = CVSSv2['A'][cvss['A']]
     impact = 10.41 * (1 -
-        (1 - confidentiality_impact)
-        * (1 - integrity_impact)
-        * (1 - availabilty_impact))
+        (1 - cvss['C'])
+        * (1 - cvss['I'])
+        * (1 - cvss['A']))
     verbose('Impact score:' + str(round(impact, 1)))
-    exploitability = 20 * access_vector * access_complexity * authentication
+    exploitability = 20 * cvss['AV'] * cvss['AC'] * cvss['Au']
     verbose('Exploitability score:' + str(round(exploitability, 1)))
     f_impact = 0 if impact == 0 else 1.176
     base_score = round(
