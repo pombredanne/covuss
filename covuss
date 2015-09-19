@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 
-import sys, re
+import sys
+import re
 
 CVSSv2 = {
-    'AV': {'L': 0.395, 'A': 0.646, 'N': 1.000},
-    'AC': {'H': 0.350, 'M': 0.610, 'L': 0.710},
-    'Au': {'M': 0.450, 'S': 0.560, 'N': 0.704},
-    'C':  {'N': 0.000, 'P': 0.275, 'C': 0.660},
-    'I':  {'N': 0.000, 'P': 0.275, 'C': 0.660},
-    'A':  {'N': 0.000, 'P': 0.275, 'C': 0.660},
+    'AV': {'L': 0.395, 'A': 0.646, 'N': 1},
+    'AC': {'H': 0.35,  'M': 0.61,  'L': 0.71},
+    'Au': {'M': 0.45,  'S': 0.56,  'N': 0.704},
+    'C':  {'N': 0,     'P': 0.275, 'C': 0.66},
+    'I':  {'N': 0,     'P': 0.275, 'C': 0.66},
+    'A':  {'N': 0,     'P': 0.275, 'C': 0.66},
 
-    'E':  {'U':  0.850, 'POC': 0.900, 'F': 0.950, 'H':  1.000, 'ND': 1.000},
-    'RL': {'OF': 0.870, 'TF':  0.900, 'W': 0.950, 'U':  1.000, 'ND': 1.000},
-    'RC': {'UC': 0.900, 'UR':  0.950, 'C': 1.000, 'ND': 1.000},
+    'E':  {'U':  0.85, 'POC': 0.9,  'F': 0.95, 'H':  1, 'ND': 1},
+    'RL': {'OF': 0.87, 'TF':  0.9,  'W': 0.95, 'U':  1, 'ND': 1},
+    'RC': {'UC': 0.9,  'UR':  0.95, 'C': 1,    'ND': 1},
 
-    'CDP': {'N': 0, 'L': 0, 'LM': 0, 'MH':  0, 'H':  0, 'ND': 0},
-    'TD':  {'N': 0, 'L': 0, 'M':  0,  'H':  0, 'ND': 0},
-    'CR':  {'L': 0, 'M': 0, 'H':  0,  'ND': 0},
-    'IR':  {'L': 0, 'M': 0, 'H':  0,  'ND': 0},
-    'AR':  {'L': 0, 'M': 0, 'H':  0,  'ND': 0},
+    'CDP': {'N': 0, 'L': 0.1, 'LM': 0.3, 'MH': 0.4, 'H': 0.5, 'ND': 0},
+    'TD':  {'N': 0, 'L': 0.25, 'M': 0.75, 'H': 1, 'ND': 1},
+    'CR':  {'L': 0.5, 'M': 1, 'H': 1.51, 'ND': 1},
+    'IR':  {'L': 0.5, 'M': 1, 'H': 1.51, 'ND': 1},
+    'AR':  {'L': 0.5, 'M': 1, 'H': 1.51, 'ND': 1},
 }
 
 VERBOSE_FLAG = False
@@ -26,6 +27,9 @@ VERBOSE_FLAG = False
 def verbose(msg):
     if VERBOSE_FLAG:
         print(msg)
+
+def round_to_one_decimal(num):
+    return round(num, 1)
 
 def parse_v2(vector):
     cvss = {}
@@ -66,18 +70,46 @@ def score_v2(cvss):
     exploitability = 20 * cvss['AV'] * cvss['AC'] * cvss['Au']
     verbose('Exploitability score:' + str(round(exploitability, 1)))
     f_impact = 0 if impact == 0 else 1.176
-    base_score = round(
-        ((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact,
-        1)
-    verbose('Base score:' + str(base_score))
-    temporal_score = round(
-        base_score
+    base = round_to_one_decimal(
+        ((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact)
+    verbose('Base score:' + str(base))
+    temporal = round_to_one_decimal(
+        base
         * (cvss['E']  if 'E'  in cvss else CVSSv2['E']['ND'])
         * (cvss['RL'] if 'RL' in cvss else CVSSv2['RL']['ND'])
-        * (cvss['RC'] if 'RC' in cvss else CVSSv2['RC']['ND'])
-        , 1)
-    verbose('Temporal score:' + str(temporal_score))
-    return temporal_score
+        * (cvss['RC'] if 'RC' in cvss else CVSSv2['RC']['ND']))
+    verbose('Temporal score:' + str(temporal))
+    adjusted_impact = min(
+        10,
+        10.41 * (1 -
+            (1 - cvss['C']
+                * (cvss['CR'] if 'CR' in cvss else CVSSv2['CR']['ND']))
+            * (1 - cvss['I']
+                * (cvss['IR'] if 'IR' in cvss else CVSSv2['IR']['ND']))
+            * (1 - cvss['A']
+                * (cvss['AR'] if 'AR' in cvss else CVSSv2['AR']['ND']))))
+    verbose(
+        'Adjusted impact score:' + str(
+            round_to_one_decimal(adjusted_impact)))
+    adjusted_base = round_to_one_decimal(
+        ((0.6 * adjusted_impact) + (0.4 * exploitability) - 1.5) * f_impact)
+    verbose(
+        'Adjusted base score:' + str(round_to_one_decimal(adjusted_base)))
+    adjusted_temporal = round_to_one_decimal(
+        adjusted_base
+        * (cvss['E']  if 'E'  in cvss else CVSSv2['E']['ND'])
+        * (cvss['RL'] if 'RL' in cvss else CVSSv2['RL']['ND'])
+        * (cvss['RC'] if 'RC' in cvss else CVSSv2['RC']['ND']))
+    verbose(
+        'Adjusted temporal score:' + str(
+            round_to_one_decimal(adjusted_temporal)))
+    environmental = round_to_one_decimal(
+        (adjusted_temporal
+            + (10 - adjusted_temporal)
+            * (cvss['CDP'] if 'CDP' in cvss else CVSSv2['CDP']['ND']))
+        *  (cvss['TD'] if 'TD' in cvss else CVSSv2['TD']['ND']))
+    verbose('Environmental score:' + str(round_to_one_decimal(environmental)))
+    return environmental
 
 if len(sys.argv) == 1:
     print('No args')

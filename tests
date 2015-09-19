@@ -2,93 +2,35 @@
 
 import subprocess
 
-tests = \
-    [
-        {
-            "vector":              "AV:N/AC:L/Au:N/C:N/I:N/A:C",
-            "valid":               True,
-            "output":              '7.8',
-            "rc":                  0,
-        },
-        {
-            "vector":              "AV:N/AC:L/Au:N/C:C/I:C/A:C",
-            "valid":               True,
-            "output":              '10.0',
-            "rc":                  0,
-        },
-        {
-            "vector":              "AV:A/AC:M/Au:M/C:P/I:N/A:C",
-            "valid":               True,
-            "output":              '5.4',
-            "rc":                  0,
-        },
-        {
-            "vector":              "AV:N/AC:H/Au:M/C:C/I:C/A:C",
-            "valid":               True,
-            "output":              '6.8',
-            "rc":                  0,
-        },
-        {
-            "vector":              "AV:L/AC:L/Au:N/C:N/I:P/A:N",
-            "valid":               True,
-            "output":              '2.1',
-            "rc":                  0,
-        },
-        {
-            "vector":              "AV:N/AC:M/Au:S/C:C/I:P/A:C/E:U/RL:TF/RC:C",
-            "valid":               True,
-            "output":              '6.3',
-            "rc":                  0,
-        },
-        {
-            "vector":              "AV:N/AC:M/Au:S/C:C/I:P/A:C/E:ND/RL:TF/RC:C",
-            "valid":               True,
-            "output":              '7.4',
-            "rc":                  0,
-        },
-        {
-            # lower case
-            "vector":              "av:n/ac:l/au:n/c:c/i:c/a:c",
-            "valid":               False,
-            "output":              'Unknown metric "av".',
-            "rc":                  1,
-        },
-        {
-            # invalid values
-            "vector":              "AV:X/AC:X/Au:X/C:X/I:X/A:X",
-            "valid":               False,
-            "output":              'Invalid value "X" for metric "AV". '\
-                'Available values: A, L, N',
-            "rc":                  1,
-        },
-        {
-            "vector":              "",
-            "valid":               False,
-            "output":              'Invalid metric "".',
-            "rc":                  1,
-        },
-        {
-            "vector":              "invalid",
-            "valid":               False,
-            "output":              'Invalid metric "invalid".',
-            "rc":                  1,
-        },
-        {
-            # duplicites
-            "vector":              "AV:N/AC:L/Au:N/C:N/I:N/A:C"\
-                "/AV:N/AC:L/Au:N/C:N/I:N/A:C",
-            "valid":               False,
-            "output":              'Duplicate metric "AV".',
-            "rc":                  1,
-        },
-        {
-            # Missing base metric
-            "vector":              "AV:N/AC:L/Au:N/C:C/A:C",
-            "valid":               False,
-            "output":              "Missing required metrics: I",
-            "rc":                  1,
-        },
-    ]
+tests = [
+    {"vector": "AV:N/AC:L/Au:N/C:N/I:N/A:C", "valid": True, "output": '7.8'},
+    {"vector": "AV:N/AC:L/Au:N/C:C/I:C/A:C", "valid": True, "output": '10.0'},
+    {"vector": "AV:A/AC:M/Au:M/C:P/I:N/A:C", "valid": True, "output": '5.4'},
+    {"vector": "AV:N/AC:H/Au:M/C:C/I:C/A:C", "valid":  True, "output": '6.8'},
+    {"vector": "AV:L/AC:L/Au:N/C:N/I:P/A:N", "valid":  True, "output": '2.1'},
+    {"vector": "AV:N/AC:M/Au:S/C:C/I:P/A:C/E:U/RL:TF/RC:C", "valid": True,
+        "output": '6.3'},
+    {"vector": "AV:N/AC:M/Au:S/C:C/I:P/A:C/E:ND/RL:TF/RC:C", "valid": True,
+        "output": '7.4'},
+    {"vector": "av:n/ac:l/au:n/c:c/i:c/a:c", "valid": False,
+        "output": 'Unknown metric "av".'},
+    {"vector": "AV:X/AC:X/Au:X/C:X/I:X/A:X", "valid": False,
+        "output": 'Invalid value "X" for metric "AV". '\
+            'Available values: A, L, N'},
+    {"vector": "", "valid": False, "output": 'Invalid metric "".'},
+    {"vector": "invalid", "valid": False,
+        "output": 'Invalid metric "invalid".'},
+    {"vector": "AV:N/AC:L/Au:N/C:N/I:N/A:C/AV:N/AC:L/Au:N/C:N/I:N/A:C",
+        "valid": False, "output": 'Duplicate metric "AV".'},
+    {"vector": "AV:N/AC:L/Au:N/C:C/A:C", "valid": False,
+        "output": "Missing required metrics: I"},
+    {"vector": "AV:N/AC:L/Au:N/C:C/I:C/A:C/E:H/RL:U/RC:C", "valid": True,
+        "output": "10.0"},
+    {"vector": "AV:A/AC:M/Au:S/C:C/I:P/A:P/CDP:LM/TD:L/CR:ND/IR:M/AR:M",
+        "valid": True, "output": "1.9"},
+    {"vector": "AV:A/AC:M/Au:S/C:C/I:P/A:P/CDP:MH/TD:H/CR:H/IR:H/AR:M",
+        "valid": True, "output": "8.4"},
+]
 
 
 def result(vector, passed=True, detail=None):
@@ -102,11 +44,9 @@ for test in tests:
     success = True
     try:
         output = subprocess.check_output(['./covuss', vector]).decode().strip()
-        rc = 0
     except subprocess.CalledProcessError as e:
         success = not test['valid']
         output = e.output.decode().strip()
-        rc = e.returncode
     if not success or test['output'] != output:
         result(vector, passed=False, detail=output)
     else:
