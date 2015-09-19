@@ -17,6 +17,24 @@ tests = \
             "rc":                  0,
         },
         {
+            "vector":              "AV:A/AC:M/Au:M/C:P/I:N/A:C",
+            "valid":               True,
+            "output":              '5.4',
+            "rc":                  0,
+        },
+        {
+            "vector":              "AV:N/AC:H/Au:M/C:C/I:C/A:C",
+            "valid":               True,
+            "output":              '6.8',
+            "rc":                  0,
+        },
+        {
+            "vector":              "AV:L/AC:L/Au:N/C:N/I:P/A:N",
+            "valid":               True,
+            "output":              '2.1',
+            "rc":                  0,
+        },
+        {
             # lower case
             "vector":              "av:n/ac:l/au:n/c:c/i:c/a:c",
             "valid":               False,
