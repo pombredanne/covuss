@@ -679,6 +679,7 @@ Not Defined (ND)
     if continue_with('Environmental', environmental_help):
         go_through_group(environmental_group)
     parse_v2_fill_not_defined(cvss)
+    print()
     print('Vector: ' + cvss_v2_to_vector(cvss))
     return cvss
 
@@ -691,7 +692,6 @@ def main():
         cvss = parse_v2(args.vector)
     elif args.interactive:
         cvss = interactive()
-        print()
     overall_cvss_score = score_v2(cvss)
     if DETAIL_FLAG:
         print('Overall CVSS score:' + str(overall_cvss_score))
