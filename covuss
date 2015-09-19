@@ -50,7 +50,8 @@ def parse_v2(vector):
         cvss[key] = value
     required_metrics = ['AV', 'AC', 'Au', 'C', 'I', 'A']
     for given_metric in cvss.keys():
-        required_metrics.remove(given_metric)
+        if given_metric in required_metrics:
+            required_metrics.remove(given_metric)
     if required_metrics:
         print('Missing required metrics: ' + ', '.join(sorted(required_metrics)))
         sys.exit(1)
