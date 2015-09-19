@@ -30,6 +30,8 @@ tests = [
         "valid": True, "output": "1.9"},
     {"vector": "AV:A/AC:M/Au:S/C:C/I:P/A:P/CDP:MH/TD:H/CR:H/IR:H/AR:M",
         "valid": True, "output": "8.4"},
+    {"vector": "AV:N/AC:L/Au:N/C:N/I:N/A:C/E:ND/RL:ND/RC:ND", "valid": True,
+        "output": '7.8'},
 ]
 
 

@@ -26,6 +26,10 @@ CVSSv2 = {
 DETAIL_FLAG = False
 
 
+def error(msg):
+    print(msg)
+    sys.exit(1)
+
 def verbose_score(msg, score):
     if DETAIL_FLAG:
         print(msg + ':' + str(round(score, 1)))
@@ -33,19 +37,18 @@ def verbose_score(msg, score):
 
 def parse_v2_check_required(cvss):
     required_metrics = ['AV', 'AC', 'Au', 'C', 'I', 'A']
-    for given_metric in cvss.keys():
+    for given_metric in cvss:
         if given_metric in required_metrics:
             required_metrics.remove(given_metric)
     if required_metrics:
-        print(
+        error(
             'Missing required metrics: ' + ', '.join(sorted(required_metrics)))
-        sys.exit(1)
 
 
 def parse_v2_fill_not_defined(cvss):
-    for metric in CVSSv2.keys():
-        if metric not in cvss.keys() and 'ND' in CVSSv2[metric].keys():
-            cvss[metric] = CVSSv2[metric]['ND']
+    for metric in CVSSv2:
+        if metric not in cvss and 'ND' in CVSSv2[metric]:
+            cvss[metric] = 'ND'
 
 
 def parse_v2(vector):
@@ -54,24 +57,37 @@ def parse_v2(vector):
         try:
             (key, value) = piece.split(':')
         except:
-            print('Invalid metric "' + piece + '".')
-            sys.exit(1)
-        if key not in CVSSv2.keys():
-            print('Unknown metric "' + key + '".')
-            sys.exit(1)
-        if value not in CVSSv2[key].keys():
-            print(
+            error('Invalid metric "' + piece + '".')
+        if key not in CVSSv2:
+            error('Unknown metric "' + key + '".')
+        if value not in CVSSv2[key]:
+            error(
                 'Invalid value "' + value
                 + '" for metric "' + key + '". '
-                + "Available values: " + ', '.join(sorted(CVSSv2[key].keys())))
-            sys.exit(1)
+                + "Available values: " + ', '.join(sorted(CVSSv2[key])))
         if key in cvss:
-            print('Duplicate metric "' + key + '".')
-            sys.exit(1)
-        cvss[key] = CVSSv2[key][value]
+            error('Duplicate metric "' + key + '".')
+        cvss[key] = value
     parse_v2_check_required(cvss)
     parse_v2_fill_not_defined(cvss)
     return cvss
+
+
+def cvss_v2_to_vector(cvss):
+    vector = ""
+    pieces = []
+    for metric in ['AV', 'AC', 'Au', 'C', 'I', 'A']:
+        pieces.append(metric + ':' + cvss[metric])
+    vector = '/'.join(pieces)
+    return vector
+
+
+def score_v2_evaluate(cvss):
+    """ Replaces symbolic values with respective numbers """
+    evaluated_cvss = {}
+    for metric in cvss:
+        evaluated_cvss[metric] = CVSSv2[metric][cvss[metric]]
+    return evaluated_cvss
 
 
 def score_v2_base(cvss):
@@ -110,7 +126,7 @@ def score_v2_environmental(exploitability, f_impact, cvss):
 
 
 def score_v2_should_do_temporal(cvss):
-    return 'E' in cvss or 'RL' in cvss or 'RC' in cvss
+    return all([cvss[k] == 'ND' for k in ['E', 'RL', 'RC']])
 
 
 def score_v2_should_do_environmental(cvss):
@@ -123,6 +139,7 @@ def score_v2_should_do_environmental(cvss):
 
 def score_v2(cvss):
     overall_score = 0
+    cvss = score_v2_evaluate(cvss)
     base, exploitability, f_impact = score_v2_base(cvss)
     verbose_score('Base score', base)
     overall_score = base
@@ -151,15 +168,27 @@ def arg_handling():
         "vector", metavar="CVSS VECTOR", help="CVSS vector", nargs='?')
     return parser.parse_args()
 
+
 args = arg_handling()
 
 DETAIL_FLAG = args.detail
 
-if args.vector:
-    overall_cvss_score = score_v2(parse_v2(args.vector))
-    if DETAIL_FLAG:
-        print('Overall CVSS score:' + str(overall_cvss_score))
-    else:
-        print(overall_cvss_score)
+if args.vector is not None:
+    cvss = parse_v2(args.vector)
 elif args.interactive:
+    DETAIL_FLAG = True
     print('Interactive mode!')
+    cvss = {}
+    print('Base')
+    for metric in ['AV', 'AC', 'Au', 'C', 'I', 'A']:
+        prompt = metric + ' [' + ', '.join(CVSSv2[metric]) + ']: '
+        value = input(prompt)
+        cvss[metric] = value
+    parse_v2_fill_not_defined(cvss)
+    print('Vector: ' + cvss_v2_to_vector(cvss))
+
+overall_cvss_score = score_v2(cvss)
+if DETAIL_FLAG:
+    print('Overall CVSS score:' + str(overall_cvss_score))
+else:
+    print(overall_cvss_score)
