@@ -136,14 +136,24 @@ def score_v2(cvss):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("vector", help="CVSS v2 vector")
 parser.add_argument(
-    "-d", "--detail", help="display detailed scoring", action="store_true")
+    "-d", "--detail", help="display detailed scoring", action="store_true",
+    required=False)
+
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument(
+    "-i", "--interactive", help="enter interactive mode", action="store_true",
+    required=False)
+group.add_argument("vector", metavar="CVSS VECTOR", help="CVSS vector", nargs='?')
+
 args = parser.parse_args()
 DETAIL_FLAG = args.detail
 
-overall_cvss_score = score_v2(parse_v2(args.vector))
-if DETAIL_FLAG:
-    print('Overall CVSS score:' + str(overall_cvss_score))
-else:
-    print(overall_cvss_score)
+if args.vector:
+    overall_cvss_score = score_v2(parse_v2(args.vector))
+    if DETAIL_FLAG:
+        print('Overall CVSS score:' + str(overall_cvss_score))
+    else:
+        print(overall_cvss_score)
+elif args.interactive:
+    print('Interactive mode!')
