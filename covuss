@@ -3,7 +3,11 @@
 import sys
 import re
 import argparse
+from copy import deepcopy
 
+CVSSv2_BASE_METRICS = ['AV', 'AC', 'Au', 'C', 'I', 'A']
+CVSSv2_TEMPORAL_METRICS = ['E', 'RL', 'RC']
+CVSSv2_ENVIRONMENTAL_METRICS = ['CDP', 'TD', 'CR', 'IR', 'AR']
 CVSSv2 = {
     'AV': {'L': 0.395, 'A': 0.646, 'N': 1},
     'AC': {'H': 0.35,  'M': 0.61,  'L': 0.71},
@@ -36,7 +40,7 @@ def verbose_score(msg, score):
 
 
 def parse_v2_check_required(cvss):
-    required_metrics = ['AV', 'AC', 'Au', 'C', 'I', 'A']
+    required_metrics = deepcopy(CVSSv2_BASE_METRICS)
     for given_metric in cvss:
         if given_metric in required_metrics:
             required_metrics.remove(given_metric)
@@ -76,10 +80,15 @@ def parse_v2(vector):
 def cvss_v2_to_vector(cvss):
     vector = ""
     pieces = []
-    for metric in ['AV', 'AC', 'Au', 'C', 'I', 'A']:
+    for metric in CVSSv2_BASE_METRICS:
         pieces.append(metric + ':' + cvss[metric])
-    vector = '/'.join(pieces)
-    return vector
+    if contains_v2_temporal(cvss):
+        for metric in CVSSv2_TEMPORAL_METRICS:
+            pieces.append(metric + ':' + cvss[metric])
+    if contains_v2_environmental(cvss):
+        for metric in CVSSv2_ENVIRONMENTAL_METRICS:
+            pieces.append(metric + ':' + cvss[metric])
+    return '/'.join(pieces)
 
 
 def score_v2_evaluate(cvss):
@@ -125,30 +134,28 @@ def score_v2_environmental(exploitability, f_impact, cvss):
         * cvss['TD'], 1)
 
 
-def score_v2_should_do_temporal(cvss):
-    return all([cvss[k] == 'ND' for k in ['E', 'RL', 'RC']])
+def contains_v2_temporal(cvss):
+    return any([cvss[metric] != 'ND' for metric in CVSSv2_TEMPORAL_METRICS])
 
 
-def score_v2_should_do_environmental(cvss):
-    return 'CDP' in cvss \
-        or 'TD' in cvss \
-        or 'CR' in cvss \
-        or 'IR' in cvss \
-        or 'AR' in cvss
+def contains_v2_environmental(cvss):
+    return any(
+        [cvss[metric] != 'ND' for metric in CVSSv2_ENVIRONMENTAL_METRICS])
 
 
 def score_v2(cvss):
     overall_score = 0
-    cvss = score_v2_evaluate(cvss)
-    base, exploitability, f_impact = score_v2_base(cvss)
+    e_cvss = score_v2_evaluate(cvss)
+    base, exploitability, f_impact = score_v2_base(e_cvss)
     verbose_score('Base score', base)
     overall_score = base
-    if score_v2_should_do_temporal(cvss):
-        temporal = score_v2_temporal(base, cvss)
+    if contains_v2_temporal(cvss):
+        temporal = score_v2_temporal(base, e_cvss)
         verbose_score('Temporal score', temporal)
         overall_score = temporal
-    if score_v2_should_do_environmental(cvss):
-        environmental = score_v2_environmental(exploitability, f_impact, cvss)
+    if contains_v2_environmental(cvss):
+        environmental = score_v2_environmental(
+            exploitability, f_impact, e_cvss)
         verbose_score('Environmental score', environmental)
         overall_score = environmental
     return overall_score
@@ -180,7 +187,7 @@ elif args.interactive:
     print('Interactive mode!')
     cvss = {}
     print('Base')
-    for metric in ['AV', 'AC', 'Au', 'C', 'I', 'A']:
+    for metric in CVSSv2_BASE_METRICS:
         prompt = metric + ' [' + ', '.join(CVSSv2[metric]) + ']: '
         value = input(prompt)
         cvss[metric] = value
