@@ -21,6 +21,12 @@ CVSSv2 = {
     'AR':  {'L': 0, 'M': 0, 'H':  0,  'ND': 0},
 }
 
+VERBOSE_FLAG = False
+
+def verbose(msg):
+    if VERBOSE_FLAG:
+        print(msg)
+
 def parse_v2(vector):
     cvss = {}
     for piece in vector.split('/'):
@@ -50,7 +56,7 @@ def parse_v2(vector):
         sys.exit(1)
     return cvss
 
-def score(cvss):
+def score_v2(cvss):
     access_vector          = CVSSv2['AV'][cvss['AV']]
     access_complexity      = CVSSv2['AC'][cvss['AC']]
     authentication         = CVSSv2['Au'][cvss['Au']]
@@ -61,17 +67,24 @@ def score(cvss):
         (1 - confidentiality_impact)
         * (1 - integrity_impact)
         * (1 - availabilty_impact))
+    verbose('Impact score:' + str(round(impact, 1)))
     exploitability = 20 * access_vector * access_complexity * authentication
+    verbose('Exploitability score:' + str(round(exploitability, 1)))
     f_impact = 0 if impact == 0 else 1.176
     base_score = round(
         ((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact,
         1)
+    verbose('Base score:' + str(base_score))
     return base_score
 
 if len(sys.argv) == 1:
     print('No args')
 elif len(sys.argv) == 2:
     vector = sys.argv[1]
-    print(score(parse_v2(vector)))
+    overall_cvss_score = score_v2(parse_v2(vector))
+    if VERBOSE_FLAG:
+        print('Overall CVSS score:' + str(overall_cvss_score))
+    else:
+        print(overall_cvss_score)
 else:
     print('Wrong usage')
