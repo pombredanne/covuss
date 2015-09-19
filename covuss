@@ -2,6 +2,7 @@
 
 import sys
 import re
+import argparse
 
 CVSSv2 = {
     'AV': {'L': 0.395, 'A': 0.646, 'N': 1},
@@ -22,7 +23,7 @@ CVSSv2 = {
     'AR':  {'L': 0.5, 'M': 1, 'H': 1.51, 'ND': 1},
 }
 
-VERBOSE_FLAG = False
+DETAIL_FLAG = False
 
 
 def round_to_one_decimal(num):
@@ -30,7 +31,7 @@ def round_to_one_decimal(num):
 
 
 def verbose_score(msg, score):
-    if VERBOSE_FLAG:
+    if DETAIL_FLAG:
         print(msg + ':' + str(round_to_one_decimal(score)))
 
 
@@ -134,14 +135,15 @@ def score_v2(cvss):
     return overall_score
 
 
-if len(sys.argv) == 1:
-    print('No args')
-elif len(sys.argv) == 2:
-    vector = sys.argv[1]
-    overall_cvss_score = score_v2(parse_v2(vector))
-    if VERBOSE_FLAG:
-        print('Overall CVSS score:' + str(overall_cvss_score))
-    else:
-        print(overall_cvss_score)
+parser = argparse.ArgumentParser()
+parser.add_argument("vector", help="CVSS v2 vector")
+parser.add_argument(
+    "-d", "--detail", help="display detailed scoring", action="store_true")
+args = parser.parse_args()
+DETAIL_FLAG = args.detail
+
+overall_cvss_score = score_v2(parse_v2(args.vector))
+if DETAIL_FLAG:
+    print('Overall CVSS score:' + str(overall_cvss_score))
 else:
-    print('Wrong usage')
+    print(overall_cvss_score)
