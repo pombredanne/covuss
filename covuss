@@ -34,6 +34,7 @@ def error(msg):
     print(msg)
     sys.exit(1)
 
+
 def verbose_score(msg, score):
     if DETAIL_FLAG:
         print(msg + ':' + str(round(score, 1)))
@@ -78,7 +79,6 @@ def parse_v2(vector):
 
 
 def cvss_v2_to_vector(cvss):
-    vector = ""
     pieces = []
     for metric in CVSSv2_BASE_METRICS:
         pieces.append(metric + ':' + cvss[metric])
@@ -176,26 +176,218 @@ def arg_handling():
     return parser.parse_args()
 
 
-args = arg_handling()
-
-DETAIL_FLAG = args.detail
-
-if args.vector is not None:
-    cvss = parse_v2(args.vector)
-elif args.interactive:
-    DETAIL_FLAG = True
-    print('Interactive mode!')
+def interactive():
+    print("Let's build some CVSS!")
     cvss = {}
-    print('Base')
-    for metric in CVSSv2_BASE_METRICS:
-        prompt = metric + ' [' + ', '.join(CVSSv2[metric]) + ']: '
-        value = input(prompt)
-        cvss[metric] = value
+    print('== Base metrics group (required) ==')
+    base_group = [
+        {
+            'metric': 'AV',
+            'name': 'Acess Vector (AV)',
+            'options': '[(L)ocal, (A)djacent Network, (N)etwork, (?)]',
+            'help': """
+This metric reflects how the vulnerability is exploited. The more remote an
+attacker can be to attack a host, the greater the vulnerability score.
+
+Local (L)       A vulnerability exploitable with only local access requires the
+                attacker to have either physical access to the vulnerable
+                system or a local (shell) account. Examples of locally
+                exploitable vulnerabilities are peripheral attacks such as
+                Firewire/USB DMA attacks, and local privilege escalations
+                (e.g., sudo).
+
+Adjacent Network (A)
+                A vulnerability exploitable with adjacent network access
+                requires the attacker to have access to either the broadcast or
+                collision domain of the vulnerable software.  Examples of local
+                networks include local IP subnet, Bluetooth, IEEE 802.11, and
+                local Ethernet segment.
+
+Network (N)     A vulnerability exploitable with network access means the
+                vulnerable software is bound to the network stack and the
+                attacker does not require local network access or local access.
+                Such a vulnerability is often termed "remotely exploitable".
+                An example of a network attack is an RPC buffer overflow.
+"""},
+        {
+            'metric': 'AC',
+            'name': 'Acess Complexity (AC)',
+            'options': '[(H)igh, (M)edium, (L)ow, (?)]',
+            'help': """
+This metric measures the complexity of the attack required to exploit the
+vulnerability once an attacker has gained access to the target system. For
+example, consider a buffer overflow in an Internet service: once the target
+system is located, the attacker can launch an exploit at will.
+
+Other vulnerabilities, however, may require additional steps in order to be
+exploited. For example, a vulnerability in an email client is only exploited
+after the user downloads and opens a tainted attachment. The lower the required
+complexity, the higher the vulnerability score.
+
+High (H)        Specialized access conditions exist. For example:
+                * In most configurations, the attacking party must already have
+                  elevated privileges or spoof additional systems in addition
+                  to the attacking system (e.g., DNS hijacking).
+                * The attack depends on social engineering methods that would be
+                  easily detected by knowledgeable people. For example, the
+                  victim must perform several suspicious or atypical actions.
+                * The vulnerable configuration is seen very rarely in practice.
+                * If a race condition exists, the window is very narrow.
+
+Medium (M)      The access conditions are somewhat specialized; the following
+                are examples:
+                * The attacking party is limited to a group of systems or users
+                  at some level of authorization, possibly untrusted.
+                * Some information must be gathered before a successful attack
+                  can be launched.
+                * The affected configuration is non-default, and is not
+                  commonly configured (e.g., a vulnerability present when
+                  a server performs user account authentication via a specific
+                  scheme, but not present for another authentication scheme).
+                * The attack requires a small amount of social engineering that
+                  might occasionally fool cautious users (e.g., phishing
+                  attacks that modify a web browsers status bar to show a false
+                  link, having to be on someones buddy list before sending an
+                  IM exploit).
+
+Low (L)         Specialized access conditions or extenuating circumstances do
+                not exist. The following are examples:
+                * The affected product typically requires access to a wide range
+                  of systems and users, possibly anonymous and untrusted
+                  (e.g., Internet-facing web or mail server).
+                * The affected configuration is default or ubiquitous.
+                * The attack can be performed manually and requires little
+                  skill or additional information gathering.
+                * The race condition is a lazy one (i.e., it is technically
+                  a race but easily winnable).
+"""},
+        {
+            'metric': 'Au',
+            'name': 'Authentication (Au)',
+            'options': '[(M)ultiple, (S)ingle, (N)one, (?)]',
+            'help': 'Not yet available'},
+        {
+            'metric': 'C',
+            'name': 'Confidentiality impact (C)',
+            'options': '[(N)one, (P)artial, (C)omplete, (?)]',
+            'help': 'Not yet available'},
+        {
+            'metric': 'I',
+            'name': 'Integrity impact (I)',
+            'options': '[(N)one, (P)artial, (C)omplete, (?)]',
+            'help': 'Not yet available'},
+        {
+            'metric': 'A',
+            'name': 'Integrity impact (A)',
+            'options': '[(N)one, (P)artial, (C)omplete, (?)]',
+            'help': 'Not yet available'}
+    ]
+    temporal_group = [
+        {
+            'metric': 'E',
+            'name': 'Exploitability (E)',
+            'options': '[(U)nproven, Proof-of-Concept (POC), (F)unctional, '
+                '(H)igh, Not Defined (ND)]',
+            'help': 'Not yet available'},
+        {
+            'metric': 'RL',
+            'name': 'Remedation Level (RL)',
+            'options': '[Official Fix (OF), Temporary Fix (TF), (W)orkaround, '
+                '(U)navailable, Not Defined (ND)]',
+            'help': 'Not yet available'},
+        {
+            'metric': 'RC',
+            'name': 'Report Confidence (RC)',
+            'options': '[Unconfirmed (UC), Uncorroborated (UR), (C)onfirmed, '
+                'Not Defined (ND)]',
+            'help': 'Not yet available'}
+    ]
+    common_options = '[(L)ow, (M)edium, (H)igh, Not Defined (ND)]'
+    common_help = 'Not yet available'
+    environmental_group = [
+        {
+            'metric': 'CDP',
+            'name': 'Collateral Damage Potential (CDP)',
+            'options': '[(N)one, (L)ow, Low-Medium (LM), Medium-High (MH), '
+                '(H)igh, Not Defined (ND)]',
+            'help': 'Not yet available'},
+        {
+            'metric': 'TD',
+            'name': 'Target Distribution (TD)',
+            'options': '[(N)one, (L)ow, (M)edium, (H)igh, Not Defined (ND)]',
+            'help': 'Not yet available'},
+        {
+            'metric': 'CR',
+            'name': 'Confidentiality Requirement (CR)',
+            'options': common_options,
+            'help': common_help},
+        {
+            'metric': 'IR',
+            'name': 'Integrity Requirement (CR)',
+            'options': common_options,
+            'help': common_help},
+        {
+            'metric': 'AR',
+            'name': 'Availability Requirement (CR)',
+            'options': common_options,
+            'help': common_help}
+    ]
+    def go_through_group(group):
+        for metric in group:
+            while metric['metric'] not in cvss:
+                prompt = metric['name'] + ' ' + metric['options'] + ': '
+                value = input(prompt).strip()
+                if value == 'q':
+                    sys.exit(0)
+                if value == '?':
+                    print(metric['help'])
+                    continue
+                if value not in CVSSv2[metric['metric']]:
+                    print('Invalid value. Please choose from given options.')
+                else:
+                    cvss[metric['metric']] = value
+    go_through_group(base_group)
+    def continue_with(group_name):
+        while True:
+            value = input(
+                '\nContinue with (optional) Temporal metrics group? [y/N]: ')
+            if value == 'q':
+                sys.exit(0)
+            if value not in ['y', 'Y', 'n', 'N', '']:
+                print("Sorry, I don't understand.")
+            else:
+                break
+        return value in ['y', 'Y']
+    if continue_with('Temporal'):
+        go_through_group(temporal_group)
+    if continue_with('Environmental'):
+        go_through_group(environmental_group)
     parse_v2_fill_not_defined(cvss)
     print('Vector: ' + cvss_v2_to_vector(cvss))
+    return cvss
 
-overall_cvss_score = score_v2(cvss)
-if DETAIL_FLAG:
-    print('Overall CVSS score:' + str(overall_cvss_score))
-else:
-    print(overall_cvss_score)
+
+def main():
+    args = arg_handling()
+    global DETAIL_FLAG
+    DETAIL_FLAG = args.interactive or args.detail
+    if args.vector is not None:
+        cvss = parse_v2(args.vector)
+    elif args.interactive:
+        cvss = interactive()
+    overall_cvss_score = score_v2(cvss)
+    if DETAIL_FLAG:
+        print('Overall CVSS score:' + str(overall_cvss_score))
+    else:
+        print(overall_cvss_score)
+
+
+try:
+    main()
+except KeyboardInterrupt:
+    print()
+    pass
+except Exception as e:
+    print("Fatal error: " + str(e))
+    print('Please file a bug report: https://github.com/mkopta/covuss')
+    sys.exit(2)
