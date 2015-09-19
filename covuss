@@ -26,17 +26,26 @@ CVSSv2 = {
 DETAIL_FLAG = False
 
 
-def round_to_one_decimal(num):
-    return round(num, 1)
-
-
 def verbose_score(msg, score):
     if DETAIL_FLAG:
-        print(msg + ':' + str(round_to_one_decimal(score)))
+        print(msg + ':' + str(round(score, 1)))
 
 
-def ndread(cvss, key):
-    return cvss[key] if key in cvss else CVSSv2[key]['ND']
+def parse_v2_check_required(cvss):
+    required_metrics = ['AV', 'AC', 'Au', 'C', 'I', 'A']
+    for given_metric in cvss.keys():
+        if given_metric in required_metrics:
+            required_metrics.remove(given_metric)
+    if required_metrics:
+        print(
+            'Missing required metrics: ' + ', '.join(sorted(required_metrics)))
+        sys.exit(1)
+
+
+def parse_v2_fill_not_defined(cvss):
+    for metric in CVSSv2.keys():
+        if metric not in cvss.keys() and 'ND' in CVSSv2[metric].keys():
+            cvss[metric] = CVSSv2[metric]['ND']
 
 
 def parse_v2(vector):
@@ -60,14 +69,8 @@ def parse_v2(vector):
             print('Duplicate metric "' + key + '".')
             sys.exit(1)
         cvss[key] = CVSSv2[key][value]
-    required_metrics = ['AV', 'AC', 'Au', 'C', 'I', 'A']
-    for given_metric in cvss.keys():
-        if given_metric in required_metrics:
-            required_metrics.remove(given_metric)
-    if required_metrics:
-        print(
-            'Missing required metrics: ' + ', '.join(sorted(required_metrics)))
-        sys.exit(1)
+    parse_v2_check_required(cvss)
+    parse_v2_fill_not_defined(cvss)
     return cvss
 
 
@@ -78,40 +81,39 @@ def score_v2_base(cvss):
     verbose_score('Exploitability score', exploitability)
     f_impact = 0 if impact == 0 else 1.176
     return (
-        round_to_one_decimal(
-            ((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact),
+        round(
+            ((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact, 1),
         exploitability,
         f_impact)
 
 
 def score_v2_temporal(base, cvss):
-    return round_to_one_decimal(
-        base * ndread(cvss, 'E') * ndread(cvss, 'RL') * ndread(cvss, 'RC'))
+    return round(base * cvss['E'] * cvss['RL'] * cvss['RC'], 1)
 
 
 def score_v2_environmental(exploitability, f_impact, cvss):
     adjusted_impact = min(
         10,
         10.41 * (1 -
-            (1 - cvss['C'] * ndread(cvss, 'CR'))
-            * (1 - cvss['I'] * ndread(cvss, 'IR'))
-            * (1 - cvss['A'] * ndread(cvss, 'AR'))))  # https://xkcd.com/297
+            (1 - cvss['C'] * cvss['CR'])
+            * (1 - cvss['I'] * cvss['IR'])
+            * (1 - cvss['A'] * cvss['AR'])))  # https://xkcd.com/297
     verbose_score('Adjusted impact score', adjusted_impact)
-    adjusted_base = round_to_one_decimal(
-        ((0.6 * adjusted_impact) + (0.4 * exploitability) - 1.5) * f_impact)
+    adjusted_base = round(
+        ((0.6 * adjusted_impact) + (0.4 * exploitability) - 1.5) * f_impact, 1)
     verbose_score('Adjusted base score', adjusted_base)
     adjusted_temporal = score_v2_temporal(adjusted_base, cvss)
     verbose_score('Adjusted temporal score', adjusted_temporal)
-    return round_to_one_decimal(
-        (adjusted_temporal + (10 - adjusted_temporal) * (ndread(cvss, 'CDP')))
-        * ndread(cvss, 'TD'))
+    return round(
+        (adjusted_temporal + (10 - adjusted_temporal) * cvss['CDP'])
+        * cvss['TD'], 1)
 
 
-def should_do_temporal(cvss):
+def score_v2_should_do_temporal(cvss):
     return 'E' in cvss or 'RL' in cvss or 'RC' in cvss
 
 
-def should_do_environmental(cvss):
+def score_v2_should_do_environmental(cvss):
     return 'CDP' in cvss \
         or 'TD' in cvss \
         or 'CR' in cvss \
@@ -124,29 +126,33 @@ def score_v2(cvss):
     base, exploitability, f_impact = score_v2_base(cvss)
     verbose_score('Base score', base)
     overall_score = base
-    if should_do_temporal(cvss):
+    if score_v2_should_do_temporal(cvss):
         temporal = score_v2_temporal(base, cvss)
         verbose_score('Temporal score', temporal)
         overall_score = temporal
-    if should_do_environmental(cvss):
+    if score_v2_should_do_environmental(cvss):
         environmental = score_v2_environmental(exploitability, f_impact, cvss)
         verbose_score('Environmental score', environmental)
         overall_score = environmental
     return overall_score
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "-d", "--detail", help="display detailed scoring", action="store_true",
-    required=False)
+def arg_handling():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-d", "--detail", help="display detailed scoring", action="store_true",
+        required=False)
 
-group = parser.add_mutually_exclusive_group(required=True)
-group.add_argument(
-    "-i", "--interactive", help="enter interactive mode", action="store_true",
-    required=False)
-group.add_argument("vector", metavar="CVSS VECTOR", help="CVSS vector", nargs='?')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "-i", "--interactive", help="enter interactive mode",
+        action="store_true", required=False)
+    group.add_argument(
+        "vector", metavar="CVSS VECTOR", help="CVSS vector", nargs='?')
+    return parser.parse_args()
 
-args = parser.parse_args()
+args = arg_handling()
+
 DETAIL_FLAG = args.detail
 
 if args.vector:
