@@ -22,9 +22,8 @@ CVSSv2 = {
 }
 
 def parse_v2(vector):
-    pieces = vector.split('/')
     cvss = {}
-    for piece in pieces:
+    for piece in vector.split('/'):
         try:
             (key, value) = piece.split(':')
         except:
