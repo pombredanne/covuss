@@ -24,12 +24,19 @@ CVSSv2 = {
 
 VERBOSE_FLAG = False
 
-def verbose(msg):
-    if VERBOSE_FLAG:
-        print(msg)
 
 def round_to_one_decimal(num):
     return round(num, 1)
+
+
+def verbose_score(msg, score):
+    if VERBOSE_FLAG:
+        print(msg + ':' + str(round_to_one_decimal(score)))
+
+
+def ndread(cvss, key):
+    return cvss[key] if key in cvss else CVSSv2[key]['ND']
+
 
 def parse_v2(vector):
     cvss = {}
@@ -61,55 +68,70 @@ def parse_v2(vector):
         sys.exit(1)
     return cvss
 
-def score_v2(cvss):
-    impact = 10.41 * (1 -
-        (1 - cvss['C'])
-        * (1 - cvss['I'])
-        * (1 - cvss['A']))
-    verbose('Impact score:' + str(round(impact, 1)))
+
+def score_v2_base(cvss):
+    impact = 10.41 * (1 - (1 - cvss['C']) * (1 - cvss['I']) * (1 - cvss['A']))
+    verbose_score('Impact score', impact)
     exploitability = 20 * cvss['AV'] * cvss['AC'] * cvss['Au']
-    verbose('Exploitability score:' + str(round(exploitability, 1)))
+    verbose_score('Exploitability score', exploitability)
     f_impact = 0 if impact == 0 else 1.176
-    base = round_to_one_decimal(
-        ((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact)
-    verbose('Base score:' + str(base))
-    temporal = round_to_one_decimal(
-        base
-        * (cvss['E']  if 'E'  in cvss else CVSSv2['E']['ND'])
-        * (cvss['RL'] if 'RL' in cvss else CVSSv2['RL']['ND'])
-        * (cvss['RC'] if 'RC' in cvss else CVSSv2['RC']['ND']))
-    verbose('Temporal score:' + str(temporal))
+    return (
+        round_to_one_decimal(
+            ((0.6 * impact) + (0.4 * exploitability) - 1.5) * f_impact),
+        exploitability,
+        f_impact)
+
+
+def score_v2_temporal(base, cvss):
+    return round_to_one_decimal(
+        base * ndread(cvss, 'E') * ndread(cvss, 'RL') * ndread(cvss, 'RC'))
+
+
+def score_v2_environmental(exploitability, f_impact, cvss):
     adjusted_impact = min(
         10,
         10.41 * (1 -
-            (1 - cvss['C']
-                * (cvss['CR'] if 'CR' in cvss else CVSSv2['CR']['ND']))
-            * (1 - cvss['I']
-                * (cvss['IR'] if 'IR' in cvss else CVSSv2['IR']['ND']))
-            * (1 - cvss['A']
-                * (cvss['AR'] if 'AR' in cvss else CVSSv2['AR']['ND']))))
-    verbose(
-        'Adjusted impact score:' + str(
-            round_to_one_decimal(adjusted_impact)))
+            (1 - cvss['C'] * ndread(cvss, 'CR'))
+            * (1 - cvss['I'] * ndread(cvss, 'IR'))
+            * (1 - cvss['A'] * ndread(cvss, 'AR'))))  # https://xkcd.com/297
+    verbose_score('Adjusted impact score', adjusted_impact)
     adjusted_base = round_to_one_decimal(
         ((0.6 * adjusted_impact) + (0.4 * exploitability) - 1.5) * f_impact)
-    verbose(
-        'Adjusted base score:' + str(round_to_one_decimal(adjusted_base)))
-    adjusted_temporal = round_to_one_decimal(
-        adjusted_base
-        * (cvss['E']  if 'E'  in cvss else CVSSv2['E']['ND'])
-        * (cvss['RL'] if 'RL' in cvss else CVSSv2['RL']['ND'])
-        * (cvss['RC'] if 'RC' in cvss else CVSSv2['RC']['ND']))
-    verbose(
-        'Adjusted temporal score:' + str(
-            round_to_one_decimal(adjusted_temporal)))
-    environmental = round_to_one_decimal(
-        (adjusted_temporal
-            + (10 - adjusted_temporal)
-            * (cvss['CDP'] if 'CDP' in cvss else CVSSv2['CDP']['ND']))
-        *  (cvss['TD'] if 'TD' in cvss else CVSSv2['TD']['ND']))
-    verbose('Environmental score:' + str(round_to_one_decimal(environmental)))
-    return environmental
+    verbose_score('Adjusted base score', adjusted_base)
+    adjusted_temporal = score_v2_temporal(adjusted_base, cvss)
+    verbose_score('Adjusted temporal score', adjusted_temporal)
+    return round_to_one_decimal(
+        (adjusted_temporal + (10 - adjusted_temporal) * (ndread(cvss, 'CDP')))
+        * ndread(cvss, 'TD'))
+
+
+def should_do_temporal(cvss):
+    return 'E' in cvss or 'RL' in cvss or 'RC' in cvss
+
+
+def should_do_environmental(cvss):
+    return 'CDP' in cvss \
+        or 'TD' in cvss \
+        or 'CR' in cvss \
+        or 'IR' in cvss \
+        or 'AR' in cvss
+
+
+def score_v2(cvss):
+    overall_score = 0
+    base, exploitability, f_impact = score_v2_base(cvss)
+    verbose_score('Base score', base)
+    overall_score = base
+    if should_do_temporal(cvss):
+        temporal = score_v2_temporal(base, cvss)
+        verbose_score('Temporal score', temporal)
+        overall_score = temporal
+    if should_do_environmental(cvss):
+        environmental = score_v2_environmental(exploitability, f_impact, cvss)
+        verbose_score('Environmental score', environmental)
+        overall_score = environmental
+    return overall_score
+
 
 if len(sys.argv) == 1:
     print('No args')
