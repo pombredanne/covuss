@@ -1,8 +1,9 @@
-manpage
-README update
+refactoring
 cvss v3 support
 cvss v1 support
 spec file to rpm
 testing with expect?
 explain vector?
-refactoring
+colors
+
+some prompts are longer than 80
