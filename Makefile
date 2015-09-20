@@ -1,7 +1,8 @@
 VERSION=snapshot
 DESTDIR=/usr/local
 
-all: manpage
+all:
+	@echo "Usage: make (install | uninstall | dist | rpm | clean)"
 
 install: manpage
 	install -D -m 555 covuss $(DESTDIR)/bin/covuss
@@ -13,8 +14,15 @@ uninstall:
 
 dist: clean builddir
 	mkdir build/covuss-$(VERSION)
-	cp * build/covuss-$(VERSION) 2>/dev/null || true
+	cp LICENSE Makefile README.md \
+		covuss covuss.1 build/covuss-$(VERSION)
 	cd build && tar czf covuss-$(VERSION).tgz covuss-$(VERSION)
+
+rpm: dist
+	mkdir -p build/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+	cp build/covuss-$(VERSION).tgz build/rpmbuild/SOURCES
+	sed "s/__VERSION__/$(VERSION)/" covuss.spec > build/covuss.spec
+	rpmbuild --define "_topdir `pwd`/build/rpmbuild" -ba build/covuss.spec
 
 manpage: clean builddir
 	gzip -c covuss.1 > build/covuss.1.gz
