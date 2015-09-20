@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import sys
 import re
@@ -38,6 +38,15 @@ def error(msg):
 def verbose_score(msg, score):
     if DETAIL_FLAG:
         print(msg + ':' + str(round(score, 1)))
+
+
+def input_wrapper(prompt):
+    """ Wrapping input() call to maintain Python 2/3 compatibility """
+    input_fn = raw_input if sys.version_info[0] == 2 else input
+    value = input_fn(prompt).strip().upper()
+    if value == 'Q':
+        sys.exit(0)
+    return value
 
 
 def parse_v2_check_required(cvss):
@@ -183,7 +192,7 @@ def paged_print(str):
         print(lines[i])
         i += 1
         if i % 24 == 0:
-            input('-- (press enter)')
+            input_wrapper('-- (press enter)')
 
 
 def interactive():
@@ -648,9 +657,7 @@ Not Defined (ND)
         for metric in group:
             while metric['metric'] not in cvss:
                 prompt = metric['name'] + ' ' + metric['options'] + ': '
-                value = input(prompt).strip().upper()
-                if value == 'Q':
-                    sys.exit(0)
+                value = input_wrapper(prompt)
                 if value == '?':
                     paged_print(metric['help'])
                     continue
@@ -661,11 +668,9 @@ Not Defined (ND)
     go_through_group(base_group)
     def continue_with(group_name, group_help):
         while True:
-            value = input(
+            value = input_wrapper(
                 '\nContinue with (optional) ' + group_name
-                + ' metrics group? [y/N/?]: ').strip().upper()
-            if value == 'Q':
-                sys.exit(0)
+                + ' metrics group? [y/N/?]: ')
             if value == '?':
                 paged_print(group_help)
                 continue
@@ -679,15 +684,14 @@ Not Defined (ND)
     if continue_with('Environmental', environmental_help):
         go_through_group(environmental_group)
     parse_v2_fill_not_defined(cvss)
-    print()
-    print('Vector: ' + cvss_v2_to_vector(cvss))
+    print('\nVector: ' + cvss_v2_to_vector(cvss))
     return cvss
 
 
 def main():
-    args = arg_handling()
     global DETAIL_FLAG
-    DETAIL_FLAG = args.interactive or args.detail
+    args = arg_handling()
+    DETAIL_FLAG = args.interactive or args.vector is None or args.detail
     if args.vector is not None:
         cvss = parse_v2(args.vector)
     else:
