@@ -10,7 +10,36 @@ Covuss has been implemented according to the "Complete Guide to The Common Vulne
 
 Covuss is written in Python and has been tested on Python 2.7.10 and Python 3.4.3.
 
+## Download
+
+Go to https://github.com/mkopta/covuss/releases
+
+You can choose from three options:
+
+* RPM package for CentOS6 (covuss-1.0-1.el6.noarch.rpm, 12.6 kB)
+* RPM package for CentOS7 (covuss-1.0-1.el7.centos.noarch.rpm, 12.6 kB)
+* Source distribution (covuss-1.0.tgz, 11.7 kB)
+
+Although untested, these packages may likely work on Fedora and Red Hat too.
+
 ## Installation
+
+### Using rpm package
+
+On CentOS 6:
+
+    $ sudo yum install covuss-1.0-1.el6.noarch.rpm
+
+On CentOS 7:
+
+    $ sudo yum install covuss-1.0-1.el7.centos.noarch.rpm
+
+### From source
+
+First unpack source and enter the directory.
+
+    $ tar xf covuss-1.0.tgz
+    $ cd covuss-1.0
 
 To install system-wide to `/usr/local`, simply call `make install` as root or with sudo.
 
