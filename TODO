@@ -1,6 +1,10 @@
-cvss v3 support
-cvss v1 support
-spec file to rpm
+release
+packaging
+    rpm
+    deb
+    pkgbuild
 testing with expect?
 explain vector?
 colors
+cvss v3 support
+cvss v1 support
