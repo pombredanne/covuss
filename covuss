@@ -713,7 +713,7 @@ def main():
 try:
     main()
 except KeyboardInterrupt:
-    print()
+    print('')
     pass
 except Exception as e:
     print("Fatal error: " + str(e))
