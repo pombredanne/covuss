@@ -1,6 +1,4 @@
-release
 packaging
-    rpm
     deb
     pkgbuild
 testing with expect?
