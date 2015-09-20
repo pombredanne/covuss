@@ -185,25 +185,27 @@ def arg_handling():
     return parser.parse_args()
 
 
-def paged_print(str):
+def paged_print(prompt_lines, str):
     lines = str.split('\n')
     i = 0
-    while i < len(lines):
-        print(lines[i])
+    while lines:
+        print(lines.pop(0))
         i += 1
-        if i % 24 == 0:
+        if i == 24:
             input_wrapper('-- (press enter)')
+            i = 0
+    if i + prompt_lines >= 24:
+        input_wrapper('-- (press enter)')
 
 
 def interactive():
     print("Let's build some CVSS!")
     cvss = {}
-    print('== Base metrics group (required) ==')
     base_group = [
         {
             'metric': 'AV',
             'name': 'Acess Vector (AV)',
-            'options': '[(L)ocal, (A)djacent Network, (N)etwork, (?)]',
+            'options': ['(L)ocal', '(A)djacent Network', '(N)etwork'],
             'help': """
 This metric reflects how the vulnerability is exploited. The more remote an
 attacker can be to attack a host, the greater the vulnerability score.
@@ -231,7 +233,7 @@ Network (N)     A vulnerability exploitable with network access means the
         {
             'metric': 'AC',
             'name': 'Acess Complexity (AC)',
-            'options': '[(H)igh, (M)edium, (L)ow, (?)]',
+            'options': ['(H)igh', '(M)edium', '(L)ow'],
             'help': """
 This metric measures the complexity of the attack required to exploit the
 vulnerability once an attacker has gained access to the target system. For
@@ -283,7 +285,7 @@ Low (L)         Specialized access conditions or extenuating circumstances do
         {
             'metric': 'Au',
             'name': 'Authentication (Au)',
-            'options': '[(M)ultiple, (S)ingle, (N)one, (?)]',
+            'options': ['(M)ultiple', '(S)ingle', '(N)one'],
             'help': """
 This metric measures the number of times an attacker must authenticate to a
 target in order to exploit a vulnerability. This metric does not gauge the
@@ -315,7 +317,7 @@ issuing the command.
         {
             'metric': 'C',
             'name': 'Confidentiality impact (C)',
-            'options': '[(N)one, (P)artial, (C)omplete, (?)]',
+            'options': ['(N)one', '(P)artial', '(C)omplete'],
             'help': """
 This metric measures the impact on confidentiality of a successfully exploited
 vulnerability. Confidentiality refers to limiting information access and
@@ -338,7 +340,7 @@ Complete (C)    There is total information disclosure, resulting in all system
         {
             'metric': 'I',
             'name': 'Integrity impact (I)',
-            'options': '[(N)one, (P)artial, (C)omplete, (?)]',
+            'options': ['(N)one', '(P)artial', '(C)omplete'],
             'help': """
 This metric measures the impact to integrity of a successfully exploited
 vulnerability. Integrity refers to the trustworthiness and guaranteed veracity
@@ -362,7 +364,7 @@ Complete (C)    There is a total compromise of system integrity. There is a
         {
             'metric': 'A',
             'name': 'Availability impact (A)',
-            'options': '[(N)one, (P)artial, (C)omplete, (?)]',
+            'options': ['(N)one', '(P)artial', '(C)omplete'],
             'help': """
 This metric measures the impact to availability of a successfully exploited
 vulnerability. Availability refers to the accessibility of information
@@ -390,12 +392,13 @@ they each include a metric value that has no effect on the score. This value is
 used when the user feels the particular metric does not apply and wishes to
 "skip over" it.
 """
+    NDOPT = 'Not Defined (ND)'
     temporal_group = [
         {
             'metric': 'E',
             'name': 'Exploitability (E)',
-            'options': '[(U)nproven, Proof-of-Concept (POC), (F)unctional, '
-                '(H)igh, Not Defined (ND), (?)]',
+            'options': ['(U)nproven', 'Proof-of-Concept (POC)', '(F)unctional',
+                '(H)igh', NDOPT],
             'help': """
 This metric measures the current state of exploit techniques or code
 availability. Public availability of easy-to-use exploit code increases the
@@ -436,8 +439,8 @@ Not Defined (ND)
         {
             'metric': 'RL',
             'name': 'Remedation Level (RL)',
-            'options': '[Official Fix (OF), Temporary Fix (TF), (W)orkaround, '
-                '(U)navailable, Not Defined (ND), (?)]',
+            'options': ['Official Fix (OF)', 'Temporary Fix (TF)',
+                '(W)orkaround', '(U)navailable', NDOPT],
             'help': """
 The remediation level of a vulnerability is an important factor for
 prioritization. The typical vulnerability is unpatched when initially
@@ -471,8 +474,8 @@ Not Defined (ND)
         {
             'metric': 'RC',
             'name': 'Report Confidence (RC)',
-            'options': '[Unconfirmed (UC), Uncorroborated (UR), (C)onfirmed, '
-                'Not Defined (ND), (?)]',
+            'options': ['Unconfirmed (UC)', 'Uncorroborated (UR)',
+                '(C)onfirmed', NDOPT],
             'help': """
 This metric measures the degree of confidence in the existence of the
 vulnerability and the credibility of the known technical details. Sometimes,
@@ -508,7 +511,7 @@ Not Defined (ND)
                 score. It is a signal to the equation to skip this metric.
 """}
     ]
-    common_options = '[(L)ow, (M)edium, (H)igh, Not Defined (ND), (?)]'
+    common_options = ['(L)ow', '(M)edium', '(H)igh', NDOPT]
     common_help = """
 These metrics enable the analyst to customize the CVSS score depending on the
 importance of the affected IT asset to a users organization, measured in terms
@@ -573,8 +576,8 @@ wishes to "skip over" it.
         {
             'metric': 'CDP',
             'name': 'Collateral Damage Potential (CDP)',
-            'options': '[(N)one, (L)ow, Low-Medium (LM), Medium-High (MH), '
-                '(H)igh, Not Defined (ND), (?)]',
+            'options': ['(N)one', '(L)ow', 'Low-Medium (LM)',
+                'Medium-High (MH)', '(H)igh', NDOPT],
             'help': """
 This metric measures the potential for loss of life or physical assets through
 damage or theft of property or equipment.  The metric may also measure economic
@@ -611,8 +614,7 @@ Clearly, each organization must determine for themselves the precise meaning of
         {
             'metric': 'TD',
             'name': 'Target Distribution (TD)',
-            'options': '[(N)one, (L)ow, (M)edium, (H)igh, Not Defined (ND), '
-                '(?)]',
+            'options': ['(N)one', '(L)ow', '(M)edium', '(H)igh', NDOPT],
             'help': """
 This metric measures the proportion of vulnerable systems. It is meant as an
 environment-specific indicator in order to approximate the percentage of
@@ -653,13 +655,19 @@ Not Defined (ND)
             'options': common_options,
             'help': common_help}
     ]
+    def build_prompt(metric_name, options):
+        prompt = '\n' + metric_name
+        for option in (options + ['(?)']):
+            prompt += '\n\t' + option
+        return prompt + '\n> '
     def go_through_group(group):
         for metric in group:
             while metric['metric'] not in cvss:
-                prompt = metric['name'] + ' ' + metric['options'] + ': '
+                prompt = build_prompt(metric['name'], metric['options'])
+                prompt_lines = len(prompt.split('\n'))
                 value = input_wrapper(prompt)
                 if value == '?':
-                    paged_print(metric['help'])
+                    paged_print(prompt_lines, metric['help'])
                     continue
                 if value not in CVSSv2[metric['metric']]:
                     print('Invalid value. Please choose from given options.')
@@ -669,14 +677,15 @@ Not Defined (ND)
     def continue_with(group_name, group_help):
         while True:
             value = input_wrapper(
-                '\nContinue with (optional) ' + group_name
+                '\nContinue with ' + group_name
                 + ' metrics group? [y/N/?]: ')
             if value == '?':
-                paged_print(group_help)
+                paged_print(1, group_help)
                 continue
             if value not in ['Y', 'N', '']:
                 print("Sorry, I don't understand.")
             else:
+                print('')
                 break
         return value in ['y', 'Y']
     if continue_with('Temporal', temporal_help):
