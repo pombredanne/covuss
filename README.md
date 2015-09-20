@@ -56,41 +56,42 @@ Note that you don't need to have root to install covuss when you specify `DESTDI
         (A)djacent Network
         (N)etwork
         (?)
-    > N
+    > n
 
     Acess Complexity (AC)
         (H)igh
         (M)edium
         (L)ow
         (?)
-    > M
+    > m
 
     Authentication (Au)
         (M)ultiple
         (S)ingle
         (N)one
         (?)
-    > S
+    > s
+
     Confidentiality impact (C)
         (N)one
         (P)artial
         (C)omplete
         (?)
-    > P
+    > p
 
     Integrity impact (I)
         (N)one
         (P)artial
         (C)omplete
         (?)
-    > P
+    > p
 
     Availability impact (A)
         (N)one
         (P)artial
         (C)omplete
         (?)
-    > C
+    > c
 
     Continue with Temporal metrics group? [y/N/?]:
 
