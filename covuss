@@ -167,7 +167,7 @@ def arg_handling():
         "-d", "--detail", help="display detailed scoring", action="store_true",
         required=False)
 
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "-i", "--interactive", help="enter interactive mode",
         action="store_true", required=False)
@@ -690,7 +690,7 @@ def main():
     DETAIL_FLAG = args.interactive or args.detail
     if args.vector is not None:
         cvss = parse_v2(args.vector)
-    elif args.interactive:
+    else:
         cvss = interactive()
     overall_cvss_score = score_v2(cvss)
     if DETAIL_FLAG:
