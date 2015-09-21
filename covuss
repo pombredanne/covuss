@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import sys
 import re
@@ -144,12 +144,11 @@ def score_v2_environmental(exploitability, f_impact, cvss):
 
 
 def contains_v2_temporal(cvss):
-    return any([cvss[metric] != 'ND' for metric in CVSSv2_TEMPORAL_METRICS])
+    return any(cvss[metric] != 'ND' for metric in CVSSv2_TEMPORAL_METRICS)
 
 
 def contains_v2_environmental(cvss):
-    return any(
-        [cvss[metric] != 'ND' for metric in CVSSv2_ENVIRONMENTAL_METRICS])
+    return any(cvss[metric] != 'ND' for metric in CVSSv2_ENVIRONMENTAL_METRICS)
 
 
 def score_v2(cvss):
