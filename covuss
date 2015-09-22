@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import sys
 import re
@@ -28,6 +28,7 @@ CVSSv2 = {
 }
 
 DETAIL_FLAG = False
+COLOR_FLAG = False
 
 
 def error(msg):
@@ -35,9 +36,35 @@ def error(msg):
     sys.exit(1)
 
 
+def color_code(name):
+    if not COLOR_FLAG:
+        return ''
+    return {
+        'red':     '\033[31m',
+        'green':   '\033[32m',
+        'yellow':  '\033[33m',
+        'blue':    '\033[34m',
+        'purple':  '\033[35m',
+        'torq':    '\033[36m',
+        'white':   '\033[37m',
+        'default': '\033[39m',
+    }[name]
+
+
+def score2color(score):
+    color = color_code('green')
+    if score > 3:
+        color = color_code('yellow')
+    if score > 6:
+        color = color_code('red')
+    return color
+
+
 def verbose_score(msg, score):
     if DETAIL_FLAG:
-        print(msg + ':' + str(round(score, 1)))
+        print(
+            score2color(score) + msg + ': ' + str(round(score, 1))
+            + color_code('default'))
 
 
 def input_wrapper(prompt):
@@ -174,6 +201,9 @@ def arg_handling():
     parser.add_argument(
         "-d", "--detail", help="display detailed scoring", action="store_true",
         required=False)
+    parser.add_argument(
+        "-p", "--pretty", help="color the output",
+        action="store_true", required=False)
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "-i", "--interactive", help="enter interactive mode",
@@ -696,15 +726,17 @@ Not Defined (ND)
 
 def main():
     global DETAIL_FLAG
+    global COLOR_FLAG
     args = arg_handling()
     DETAIL_FLAG = args.interactive or args.vector is None or args.detail
+    COLOR_FLAG = bool(args.pretty)
     if args.vector is not None:
         cvss = parse_v2(args.vector)
     else:
         cvss = interactive()
     overall_cvss_score = score_v2(cvss)
     if DETAIL_FLAG:
-        print('Overall CVSS score:' + str(overall_cvss_score))
+        verbose_score('Overall CVSS score', overall_cvss_score)
     else:
         print(overall_cvss_score)
 
