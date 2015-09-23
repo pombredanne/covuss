@@ -213,6 +213,54 @@ def arg_handling():
     return parser.parse_args()
 
 
+def interactive_paged_print(prompt_lines, str):
+    lines = str.split('\n')
+    i = 0
+    while lines:
+        print(lines.pop(0))
+        i += 1
+        if i == 24:
+            input_wrapper('-- (press enter)')
+            i = 0
+    if i + prompt_lines >= 24:
+        input_wrapper('-- (press enter)')
+
+
+def interactive_build_prompt(metric_name, options):
+    prompt = '\n' + metric_name
+    for option in (options + ['(?)']):
+        prompt += '\n\t' + option
+    return prompt + '\n> '
+
+
+def interactive_go_through_group(group):
+    for metric in group:
+        while metric['metric'] not in cvss:
+            prompt = interactive_build_prompt(
+                metric['name'], metric['options'])
+            prompt_lines = len(prompt.split('\n'))
+            value = input_wrapper(prompt)
+            if value == '?':
+                interactive_paged_print(prompt_lines, metric['help'])
+            elif value not in CVSSv2[metric['metric']]:
+                print('Invalid value. Please choose from given options.')
+            else:
+                cvss[metric['metric']] = value
+
+
+def interactive_continue_with(group_name, group_help):
+    while True:
+        value = input_wrapper(
+            '\nContinue with ' + group_name + ' metrics group? [y/N/?]: ')
+        if value == '?':
+            interactive_paged_print(1, group_help)
+        elif value not in ['Y', 'N', '']:
+            print("Sorry, I don't understand.")
+        else:
+            break
+    return value in ['y', 'Y']
+
+
 def interactive():
     base_group = [
         {
@@ -669,56 +717,13 @@ Not Defined (ND)
             'help': common_help}
     ]
 
-    def paged_print(prompt_lines, str):
-        lines = str.split('\n')
-        i = 0
-        while lines:
-            print(lines.pop(0))
-            i += 1
-            if i == 24:
-                input_wrapper('-- (press enter)')
-                i = 0
-        if i + prompt_lines >= 24:
-            input_wrapper('-- (press enter)')
-
-    def build_prompt(metric_name, options):
-        prompt = '\n' + metric_name
-        for option in (options + ['(?)']):
-            prompt += '\n\t' + option
-        return prompt + '\n> '
-
-    def go_through_group(group):
-        for metric in group:
-            while metric['metric'] not in cvss:
-                prompt = build_prompt(metric['name'], metric['options'])
-                prompt_lines = len(prompt.split('\n'))
-                value = input_wrapper(prompt)
-                if value == '?':
-                    paged_print(prompt_lines, metric['help'])
-                elif value not in CVSSv2[metric['metric']]:
-                    print('Invalid value. Please choose from given options.')
-                else:
-                    cvss[metric['metric']] = value
-
-    def continue_with(group_name, group_help):
-        while True:
-            value = input_wrapper(
-                '\nContinue with ' + group_name + ' metrics group? [y/N/?]: ')
-            if value == '?':
-                paged_print(1, group_help)
-            elif value not in ['Y', 'N', '']:
-                print("Sorry, I don't understand.")
-            else:
-                break
-        return value in ['y', 'Y']
-
     print("Let's build some CVSS!")
     cvss = {}
-    go_through_group(base_group)
-    if continue_with('Temporal', temporal_help):
-        go_through_group(temporal_group)
-    if continue_with('Environmental', environmental_help):
-        go_through_group(environmental_group)
+    interactive_go_through_group(base_group)
+    if interactive_continue_with('Temporal', temporal_help):
+        interactive_go_through_group(temporal_group)
+    if interactive_continue_with('Environmental', environmental_help):
+        interactive_go_through_group(environmental_group)
     parse_v2_fill_not_defined(cvss)
     print('\nVector: ' + cvss_v2_to_vector(cvss))
     return cvss
