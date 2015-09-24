@@ -265,7 +265,7 @@ def interactive():
     base_group = [
         {
             'metric': 'AV',
-            'name': 'Acess Vector (AV)',
+            'name': 'Access Vector (AV)',
             'options': ['(L)ocal', '(A)djacent Network', '(N)etwork'],
             'help': """
 This metric reflects how the vulnerability is exploited. The more remote an
@@ -293,7 +293,7 @@ Network (N)     A vulnerability exploitable with network access means the
 """},
         {
             'metric': 'AC',
-            'name': 'Acess Complexity (AC)',
+            'name': 'Access Complexity (AC)',
             'options': ['(H)igh', '(M)edium', '(L)ow'],
             'help': """
 This metric measures the complexity of the attack required to exploit the
