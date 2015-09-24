@@ -36,35 +36,32 @@ def error(msg):
     sys.exit(1)
 
 
-def color_code(name):
+def color(color_name, msg):
     if not COLOR_FLAG:
-        return ''
-    return {
-        'red':     '\033[31m',
-        'green':   '\033[32m',
-        'yellow':  '\033[33m',
-        'blue':    '\033[34m',
-        'purple':  '\033[35m',
-        'torq':    '\033[36m',
-        'white':   '\033[37m',
-        'default': '\033[39m',
-    }[name]
+        return msg
+    colors = {
+        'red':     '\x1b[31m',
+        'green':   '\x1b[32m',
+        'yellow':  '\x1b[33m',
+        'blue':    '\x1b[34m',
+        'purple':  '\x1b[35m',
+        'torq':    '\x1b[36m',
+        'white':   '\x1b[37m'}
+    return colors[color_name] + msg + '\x1b[0m'
 
 
 def score2color(score):
-    color = color_code('green')
+    color = 'green'
     if score > 3:
-        color = color_code('yellow')
+        color = 'yellow'
     if score > 6:
-        color = color_code('red')
+        color = 'red'
     return color
 
 
 def verbose_score(msg, score):
     if DETAIL_FLAG:
-        print(
-            score2color(score) + msg + ': ' + str(round(score, 1))
-            + color_code('default'))
+        print(color(score2color(score), msg + ': ' + str(round(score, 1))))
 
 
 def input_wrapper(prompt):
@@ -227,9 +224,9 @@ def interactive_paged_print(prompt_lines, str):
 
 
 def interactive_build_prompt(metric_name, options):
-    prompt = '\n' + metric_name
+    prompt = '\n' + color('blue', metric_name)
     for option in (options + ['(?)']):
-        prompt += '\n\t' + option
+        prompt += '\n\t' + color('yellow', option)
     return prompt + '\n> '
 
 
@@ -243,7 +240,10 @@ def interactive_go_through_group(group, cvss):
             if value == '?':
                 interactive_paged_print(prompt_lines, metric['help'])
             elif value not in CVSSv2[metric['metric']]:
-                print('Invalid value. Please choose from given options.')
+                print(
+                    color(
+                        'red',
+                        'Invalid value. Please choose from given options.'))
             else:
                 cvss[metric['metric']] = value
 
@@ -251,11 +251,13 @@ def interactive_go_through_group(group, cvss):
 def interactive_continue_with(group_name, group_help):
     while True:
         value = input_wrapper(
-            '\nContinue with ' + group_name + ' metrics group? [y/N/?]: ')
+            color(
+                'blue',
+                '\nContinue with ' + group_name + ' metrics group? [y/N/?]: '))
         if value == '?':
             interactive_paged_print(1, group_help)
         elif value not in ['Y', 'N', '']:
-            print("Sorry, I don't understand.")
+            print(color('red', "Sorry, I don't understand."))
         else:
             break
     return value in ['y', 'Y']
