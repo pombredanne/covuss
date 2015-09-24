@@ -16,9 +16,9 @@ Go to https://github.com/mkopta/covuss/releases
 
 You can choose from three options:
 
-* RPM package for CentOS6 (covuss-1.0-1.el6.noarch.rpm, 12.6 kB)
-* RPM package for CentOS7 (covuss-1.0-1.el7.centos.noarch.rpm, 12.6 kB)
-* Source distribution (covuss-1.0.tgz, 11.7 kB)
+* RPM package for CentOS6 (covuss-1.1-1.el6.noarch.rpm)
+* RPM package for CentOS7 (covuss-1.1-1.el7.centos.noarch.rpm)
+* Source distribution (covuss-1.1.tgz)
 
 Although untested, these packages may likely work on Fedora and Red Hat too.
 
@@ -28,18 +28,18 @@ Although untested, these packages may likely work on Fedora and Red Hat too.
 
 On CentOS 6:
 
-    $ sudo yum install covuss-1.0-1.el6.noarch.rpm
+    $ sudo yum install covuss-1.1-1.el6.noarch.rpm
 
 On CentOS 7:
 
-    $ sudo yum install covuss-1.0-1.el7.centos.noarch.rpm
+    $ sudo yum install covuss-1.1-1.el7.centos.noarch.rpm
 
 ### From source
 
 First unpack source and enter the directory.
 
-    $ tar xf covuss-1.0.tgz
-    $ cd covuss-1.0
+    $ tar xf covuss-1.1.tgz
+    $ cd covuss-1.1
 
 To install system-wide to `/usr/local`, simply call `make install` as root or with sudo.
 
