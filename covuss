@@ -748,7 +748,7 @@ def main():
 
 try:
     main()
-except KeyboardInterrupt:
+except (KeyboardInterrupt, EOFError):
     print('')
     pass
 except Exception as e:
