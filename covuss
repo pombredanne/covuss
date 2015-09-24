@@ -233,7 +233,7 @@ def interactive_build_prompt(metric_name, options):
     return prompt + '\n> '
 
 
-def interactive_go_through_group(group):
+def interactive_go_through_group(group, cvss):
     for metric in group:
         while metric['metric'] not in cvss:
             prompt = interactive_build_prompt(
@@ -719,11 +719,11 @@ Not Defined (ND)
 
     print("Let's build some CVSS!")
     cvss = {}
-    interactive_go_through_group(base_group)
+    interactive_go_through_group(base_group, cvss)
     if interactive_continue_with('Temporal', temporal_help):
-        interactive_go_through_group(temporal_group)
+        interactive_go_through_group(temporal_group, cvss)
     if interactive_continue_with('Environmental', environmental_help):
-        interactive_go_through_group(environmental_group)
+        interactive_go_through_group(environmental_group, cvss)
     parse_v2_fill_not_defined(cvss)
     print('\nVector: ' + cvss_v2_to_vector(cvss))
     return cvss
