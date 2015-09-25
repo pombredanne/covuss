@@ -16,11 +16,10 @@ Go to https://github.com/mkopta/covuss/releases
 
 You can choose from three options:
 
-* RPM package for CentOS6 (covuss-1.1-1.el6.noarch.rpm)
-* RPM package for CentOS7 (covuss-1.1-1.el7.centos.noarch.rpm)
+* RPM package for Fedora 22 (covuss-1.1-1.fc22.noarch.rpm)
+* RPM package for CentOS 7 (covuss-1.1-1.el7.centos.noarch.rpm)
+* RPM package for CentOS 6 (covuss-1.1-1.el6.noarch.rpm)
 * Source distribution (covuss-1.1.tgz)
-
-Although untested, these packages may likely work on Fedora and Red Hat too.
 
 ## Installation
 
@@ -33,6 +32,10 @@ On CentOS 6:
 On CentOS 7:
 
     $ sudo yum install covuss-1.1-1.el7.centos.noarch.rpm
+
+On Fedora 22:
+
+    $ sudo dnf install covuss-1.1-1.el7.centos.noarch.rpm
 
 ### From source
 
