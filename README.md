@@ -14,7 +14,7 @@ Covuss is written in Python and has been tested on Python 2.7.10 and Python 3.4.
 
 Go to https://github.com/mkopta/covuss/releases
 
-You can choose from three options:
+You can choose from these options:
 
 * RPM package for Fedora 22 (covuss-1.1-1.fc22.noarch.rpm)
 * RPM package for CentOS 7 (covuss-1.1-1.el7.centos.noarch.rpm)
