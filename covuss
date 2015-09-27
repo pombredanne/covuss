@@ -753,26 +753,22 @@ def interactive():
     return cvss
 
 
-def main():
-    global DETAIL_FLAG
-    global COLOR_FLAG
-    args = arg_handling()
-    DETAIL_FLAG = args.interactive or args.vector is None or args.detail
-    COLOR_FLAG = bool(args.pretty)
-    cvss = parse_v2(args.vector) if args.vector is not None else interactive()
-    overall_cvss_score = score_v2(cvss)
-    if DETAIL_FLAG:
-        verbose_score('Overall CVSS score', overall_cvss_score)
-    else:
-        print(overall_cvss_score)
-
-
-try:
-    main()
-except (KeyboardInterrupt, EOFError):
-    print('')
-    pass
-except Exception as e:
-    print("Fatal error: " + str(e))
-    print('Please file a bug report: https://github.com/mkopta/covuss')
-    sys.exit(2)
+if __name__ == "__main__":
+    try:
+        args = arg_handling()
+        DETAIL_FLAG = args.interactive or args.vector is None or args.detail
+        COLOR_FLAG = bool(args.pretty)
+        cvss = \
+            parse_v2(args.vector) if args.vector is not None else interactive()
+        overall_cvss_score = score_v2(cvss)
+        if DETAIL_FLAG:
+            verbose_score('Overall CVSS score', overall_cvss_score)
+        else:
+            print(overall_cvss_score)
+    except (KeyboardInterrupt, EOFError):
+        print('')
+        pass
+    except Exception as e:
+        print("Fatal error: " + str(e))
+        print('Please file a bug report: https://github.com/mkopta/covuss')
+        sys.exit(2)
