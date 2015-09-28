@@ -1,0 +1,121 @@
+#!/usr/bin/expect
+
+set timeout 2
+
+spawn ./covuss
+
+expect {
+    timeout { send_user "\nTimeouted\n"; exit 1 }
+    eof { send_user "\nUnexpected EOF\n"; exit 1 }
+    "Let's build some CVSS!\r
+\r
+Access Vector (AV)\r
+	(L)ocal\r
+	(A)djacent Network\r
+	(N)etwork\r
+	(?)\r
+> "
+}
+
+
+send "n\r"
+
+expect {
+    timeout { send_user "\nTimeouted\n"; exit 1 }
+    eof { send_user "\nUnexpected EOF\n"; exit 1 }
+    "\r
+Access Complexity (AC)\r
+	(H)igh\r
+	(M)edium\r
+	(L)ow\r
+	(?)\r
+> "
+}
+
+send "m\r"
+
+expect {
+    timeout { send_user "\nTimeouted\n"; exit 1 }
+    eof { send_user "\nUnexpected EOF\n"; exit 1 }
+    "\r
+Authentication (Au)\r
+	(M)ultiple\r
+	(S)ingle\r
+	(N)one\r
+	(?)\r
+> "
+}
+
+send "s\r"
+
+expect {
+    timeout { send_user "\nTimeouted\n"; exit 1 }
+    eof { send_user "\nUnexpected EOF\n"; exit 1 }
+    "\r
+Confidentiality impact (C)\r
+	(N)one\r
+	(P)artial\r
+	(C)omplete\r
+	(?)\r
+> "
+}
+
+send "p\r"
+
+expect {
+    timeout { send_user "\nTimeouted\n"; exit 1 }
+    eof { send_user "\nUnexpected EOF\n"; exit 1 }
+    "\r
+Integrity impact (I)\r
+	(N)one\r
+	(P)artial\r
+	(C)omplete\r
+	(?)\r
+> "
+}
+
+send "p\r"
+
+expect {
+    timeout { send_user "\nTimeouted\n"; exit 1 }
+    eof { send_user "\nUnexpected EOF\n"; exit 1 }
+    "\r
+Availability impact (A)\r
+	(N)one\r
+	(P)artial\r
+	(C)omplete\r
+	(?)\r
+> "
+}
+
+send "p\r"
+
+expect {
+    timeout { send_user "\nTimeouted\n"; exit 1 }
+    eof { send_user "\nUnexpected EOF\n"; exit 1 }
+    "Continue with Temporal metrics group?"
+}
+
+send "n\r"
+
+expect {
+    timeout { send_user "\nTimeouted\n"; exit 1 }
+    eof { send_user "\nUnexpected EOF\n"; exit 1 }
+    "Continue with Environmental metrics group?"
+}
+
+send "n\r"
+
+expect {
+    eof { send_user "\nUnexpected EOF\n"; exit 1 }
+    "Vector: AV:N/AC:M/Au:S/C:P/I:P/A:P\r
+Impact score: 6.4\r
+Exploitability score: 6.8\r
+Base score: 6.0\r
+Overall CVSS score: 6.0"
+}
+
+expect {
+    timeout { send_user "\nTimeouted\n"; exit 1 }
+    eof { exit 0 }
+}
