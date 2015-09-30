@@ -5,10 +5,87 @@ import re
 import argparse
 from copy import deepcopy
 
-CVSSv2_BASE_GROUP = [
+CVSSv2_ENVIRONMENTAL_HELP = """
+Different environments can have an immense bearing on the risk that a
+vulnerability poses to an organization and its stakeholders. The CVSS
+environmental metric group captures the characteristics of a vulnerability that
+are associated with a user's IT environment. Since environmental metrics are
+optional they each include a metric value that has no effect on the score. This
+value is used when the user feels the particular metric does not apply and
+wishes to "skip over" it.
+"""
+
+CVSSv2_TEMPORAL_HELP = """
+The threat posed by a vulnerability may change over time. Three such factors
+that CVSS captures are: confirmation of the technical details of a
+vulnerability, the remediation status of the vulnerability, and the
+availability of exploit code or techniques. Since temporal metrics are optional
+they each include a metric value that has no effect on the score. This value is
+used when the user feels the particular metric does not apply and wishes to
+"skip over" it.
+"""
+
+common_full_options = ['(L)ow', '(M)edium', '(H)igh', '(ND) Not Defined']
+common_options = ['L', 'M', 'H', 'ND']
+common_scoring = {'L': 0.5, 'M': 1, 'H': 1.51, 'ND': 1}
+
+common_help = """
+These metrics enable the analyst to customize the CVSS score depending on the
+importance of the affected IT asset to a users organization, measured in terms
+of confidentiality, integrity, and availability, That is, if an IT asset
+supports a business function for which availability is most important, the
+analyst can assign a greater value to availability, relative to confidentiality
+and integrity. Each security requirement has three possible values: low,
+medium, or high.
+
+The full effect on the environmental score is determined by the corresponding
+base impact metrics (please note that the base confidentiality, integrity and
+availability impact metrics, themselves, are not changed). That is, these
+metrics modify the environmental score by reweighting the (base)
+confidentiality, integrity, and availability impact metrics. For example, the
+confidentiality impact (C) metric has increased weight if the confidentiality
+requirement (CR) is high. Likewise, the confidentiality impact metric has
+decreased weight if the confidentiality requirement is low. The confidentiality
+impact metric weighting is neutral if the confidentiality requirement is
+medium. This same logic is applied to the integrity and availability
+requirements.
+
+Note that the confidentiality requirement will not affect the environmental
+score if the (base) confidentiality impact is set to none. Also, increasing the
+confidentiality requirement from medium to high will not change the
+environmental score when the (base) impact metrics are set to complete. This is
+because the impact sub score (part of the base score that calculates impact) is
+already at a maximum value of 10.
+
+The greater the security requirement, the higher the score (remember that
+medium is considered the default). These metrics will modify the score as much
+as plus or minus 2.5.
+
+Low (L)     Loss of [confidentiality | integrity | availability] is likely
+            to have only a limited adverse effect on the organization or
+            individuals associated with the organization (e.g., employees,
+            customers).
+
+Medium (M)  Loss of [confidentiality | integrity | availability] is likely
+            to have a serious adverse effect on the organization or
+            individuals associated with the organization (e.g., employees,
+            customers).
+
+High (H)    Loss of [confidentiality | integrity | availability] is likely
+            to have a catastrophic adverse effect on the organization or
+            individuals associated with the organization (e.g., employees,
+            customers).
+
+Not Defined (ND)
+            Assigning this value to the metric will not influence the
+            score. It is a signal to the equation to skip this metric.
+"""
+
+CVSSv2 = [
     {
         'name': 'AV',
         'full_name': 'Access Vector (AV)',
+        'group': 'base',
         'full_options': ['(L)ocal', '(A)djacent Network', '(N)etwork'],
         'options': ['L', 'A', 'N'],
         'scoring': {'L': 0.395, 'A': 0.646, 'N': 1},
@@ -16,7 +93,7 @@ CVSSv2_BASE_GROUP = [
 This metric reflects how the vulnerability is exploited. The more remote an
 attacker can be to attack a host, the greater the vulnerability score.
 
-Local (L)       A vulnerability exploitable with only local access requires the
+Local (L)   A vulnerability exploitable with only local access requires the
             attacker to have either physical access to the vulnerable
             system or a local (shell) account. Examples of locally
             exploitable vulnerabilities are peripheral attacks such as
@@ -30,7 +107,8 @@ Adjacent Network (A)
             networks include local IP subnet, Bluetooth, IEEE 802.11, and
             local Ethernet segment.
 
-Network (N)     A vulnerability exploitable with network access means the
+Network (N)
+            A vulnerability exploitable with network access means the
             vulnerable software is bound to the network stack and the
             attacker does not require local network access or local access.
             Such a vulnerability is often termed "remotely exploitable".
@@ -39,6 +117,7 @@ Network (N)     A vulnerability exploitable with network access means the
     {
         'name': 'AC',
         'full_name': 'Access Complexity (AC)',
+        'group': 'base',
         'full_options': ['(H)igh', '(M)edium', '(L)ow'],
         'options': ['H', 'M', 'L'],
         'scoring': {'H': 0.35, 'M': 0.61, 'L': 0.71},
@@ -53,7 +132,7 @@ exploited. For example, a vulnerability in an email client is only exploited
 after the user downloads and opens a tainted attachment. The lower the required
 complexity, the higher the vulnerability score.
 
-High (H)        Specialized access conditions exist. For example:
+High (H)    Specialized access conditions exist. For example:
             * In most configurations, the attacking party must already have
               elevated privileges or spoof additional systems in addition
               to the attacking system (e.g., DNS hijacking).
@@ -63,7 +142,7 @@ High (H)        Specialized access conditions exist. For example:
             * The vulnerable configuration is seen very rarely in practice.
             * If a race condition exists, the window is very narrow.
 
-Medium (M)      The access conditions are somewhat specialized; the following
+Medium (M)  The access conditions are somewhat specialized; the following
             are examples:
             * The attacking party is limited to a group of systems or users
               at some level of authorization, possibly untrusted.
@@ -79,8 +158,8 @@ Medium (M)      The access conditions are somewhat specialized; the following
               link, having to be on someones buddy list before sending an
               IM exploit).
 
-Low (L)         Specialized access conditions or extenuating circumstances do
-            not exist. The following are examples:
+Low (L)     Specialized access conditions or extenuating circumstances do not
+            exist. The following are examples:
             * The affected product typically requires access to a wide range
               of systems and users, possibly anonymous and untrusted
               (e.g., Internet-facing web or mail server).
@@ -93,6 +172,7 @@ Low (L)         Specialized access conditions or extenuating circumstances do
     {
         'name': 'Au',
         'full_name': 'Authentication (Au)',
+        'group': 'base',
         'full_options': ['(M)ultiple', '(S)ingle', '(N)one'],
         'options': ['M', 'S', 'N'],
         'scoring': {'M': 0.45, 'S': 0.56, 'N': 0.704},
@@ -103,17 +183,18 @@ strength or complexity of the authentication process, only that an attacker is
 required to provide credentials before an exploit may occur. The fewer
 authentication instances that are required, the higher the vulnerability score.
 
-Multiple (M)    Exploiting the vulnerability requires that the attacker
+Multiple (M)
+            Exploiting the vulnerability requires that the attacker
             authenticate two or more times, even if the same credentials
             are used each time. An example is an attacker authenticating to
             an operating system in addition to providing credentials to
             access an application hosted on that system.
 
-Single (S)      The vulnerability requires an attacker to be logged into the
+Single (S)  The vulnerability requires an attacker to be logged into the
             system (such as at a command line or via a desktop session or
             web interface).
 
-None (N)        Authentication is not required to exploit the vulnerability.
+None (N)    Authentication is not required to exploit the vulnerability.
 
 The metric should be applied based on the authentication the attacker requires
 before launching an attack.  For example, if a mail server is vulnerable to a
@@ -127,6 +208,7 @@ issuing the command.
     {
         'name': 'C',
         'full_name': 'Confidentiality impact (C)',
+        'group': 'base',
         'full_options': ['(N)one', '(P)artial', '(C)omplete'],
         'options': ['N', 'P', 'C'],
         'scoring': {'N': 0, 'P': 0.275, 'C': 0.66},
@@ -137,21 +219,24 @@ disclosure to only authorized users, as well as preventing access by, or
 disclosure to, unauthorized ones. Increased confidentiality impact increases
 the vulnerability score.
 
-None (N)        There is no impact to the confidentiality of the system.
+None (N)    There is no impact to the confidentiality of the system.
 
-Partial (P)     There is considerable informational disclosure. Access to some
+Partial (P)
+            There is considerable informational disclosure. Access to some
             system files is possible, but the attacker does not have
             control over what is obtained, or the scope of the loss is
             constrained. An example is a vulnerability that divulges only
             certain tables in a database.
 
-Complete (C)    There is total information disclosure, resulting in all system
+Complete (C)
+            There is total information disclosure, resulting in all system
             files being revealed. The attacker is able to read all of the
             system's data (memory, files, etc.)
 """},
     {
         'name': 'I',
         'full_name': 'Integrity impact (I)',
+        'group': 'base',
         'full_options': ['(N)one', '(P)artial', '(C)omplete'],
         'options': ['N', 'P', 'C'],
         'scoring': {'N': 0, 'P': 0.275, 'C': 0.66},
@@ -160,9 +245,10 @@ This metric measures the impact to integrity of a successfully exploited
 vulnerability. Integrity refers to the trustworthiness and guaranteed veracity
 of information. Increased integrity impact increases the vulnerability score.
 
-None (N)        There is no impact to the integrity of the system.
+None (N)    There is no impact to the integrity of the system.
 
-Partial (P)     Modification of some system files or information is possible,
+Partial (P)
+            Modification of some system files or information is possible,
             but the attacker does not have control over what can be
             modified, or the scope of what the attacker can affect is
             limited. For example, system or application files may be
@@ -170,7 +256,8 @@ Partial (P)     Modification of some system files or information is possible,
             over which files are affected or the attacker can modify files
             within only a limited context or scope.
 
-Complete (C)    There is a total compromise of system integrity. There is a
+Complete (C)
+            There is a total compromise of system integrity. There is a
             complete loss of system protection, resulting in the entire
             system being compromised. The attacker is able to modify any
             files on the target system.
@@ -178,6 +265,7 @@ Complete (C)    There is a total compromise of system integrity. There is a
     {
         'name': 'A',
         'full_name': 'Availability impact (A)',
+        'group': 'base',
         'full_options': ['(N)one', '(P)artial', '(C)omplete'],
         'options': ['N', 'P', 'C'],
         'scoring': {'N': 0, 'P': 0.275, 'C': 0.66},
@@ -188,33 +276,23 @@ resources. Attacks that consume network bandwidth, processor cycles, or disk
 space all impact the availability of a system. Increased availability impact
 increases the vulnerability score.
 
-None (N)        There is no impact to the availability of the system.
+None (N)    There is no impact to the availability of the system.
 
-Partial (P)     There is reduced performance or interruptions in resource
+Partial (P)
+            There is reduced performance or interruptions in resource
             availability. An example is a network-based flood attack that
             permits a limited number of successful connections to an
             Internet service.
 
-Complete (C)    There is a total shutdown of the affected resource. The
+Complete (C)
+            There is a total shutdown of the affected resource. The
             attacker can render the resource completely unavailable.
-"""}
-]
-
-CVSSv2_TEMPORAL_HELP = """
-The threat posed by a vulnerability may change over time. Three such factors
-that CVSS captures are: confirmation of the technical details of a
-vulnerability, the remediation status of the vulnerability, and the
-availability of exploit code or techniques. Since temporal metrics are optional
-they each include a metric value that has no effect on the score. This value is
-used when the user feels the particular metric does not apply and wishes to
-"skip over" it.
-"""
-
-CVSSv2_TEMPORAL_GROUP = [
+"""},
     {
         'name': 'E',
         'full_name': 'Exploitability (E)',
-        'full_options': ['(U)nproven', 'Proof-of-Concept (POC)',
+        'group': 'temporal',
+        'full_options': ['(U)nproven', '(POC) Proof-of-Concept',
             '(F)unctional', '(H)igh', 'Not Defined (ND)'],
         'options': ['U', 'POC', 'F', 'H', 'ND'],
         'scoring': {'U': 0.85, 'POC': 0.9, 'F': 0.95, 'H': 1, 'ND': 1},
@@ -233,7 +311,8 @@ cases, it may be delivered as the payload of a network-based worm or virus.
 The more easily a vulnerability can be exploited, the higher the vulnerability
 score.
 
-Unproven (U)    No exploit code is available, or an exploit is entirely
+Unproven (U)
+            No exploit code is available, or an exploit is entirely
             theoretical.
 
 Proof-of-Concept (POC)
@@ -242,10 +321,11 @@ Proof-of-Concept (POC)
             technique is not functional in all situations and may require
             substantial modification by a skilled attacker.
 
-Functional (F)  Functional exploit code is available. The code works in most
+Functional (F)
+            Functional exploit code is available. The code works in most
             situations where the vulnerability exists.
 
-High (H)        Either the vulnerability is exploitable by functional mobile
+High (H)    Either the vulnerability is exploitable by functional mobile
             autonomous code, or no exploit is required (manual trigger) and
             details are widely available. The code works in every
             situation, or is actively being delivered via a mobile
@@ -258,7 +338,8 @@ Not Defined (ND)
     {
         'name': 'RL',
         'full_name': 'Remedation Level (RL)',
-        'full_options': ['Official Fix (OF)', 'Temporary Fix (TF)',
+        'group': 'temporal',
+        'full_options': ['(OF) Official Fix', '(TF) Temporary Fix',
             '(W)orkaround', '(U)navailable', 'Not Defined (ND)'],
         'options': ['OF', 'TF', 'W', 'U', 'ND'],
         'scoring': {'OF': 0.87, 'TF': 0.9, 'W': 0.95, 'U': 1, 'ND': 1},
@@ -295,7 +376,8 @@ Not Defined (ND)
     {
         'name': 'RC',
         'full_name': 'Report Confidence (RC)',
-        'full_options': ['Unconfirmed (UC)', 'Uncorroborated (UR)',
+        'group': 'temporal',
+        'full_options': ['(UC) Unconfirmed', '(UR) Uncorroborated',
             '(C)onfirmed', 'Not Defined (ND)'],
         'options': ['UC', 'UR', 'C', 'ND'],
         'scoring': {'UC': 0.9, 'UR': 0.95, 'C': 1, 'ND': 1},
@@ -323,7 +405,8 @@ Uncorroborated (UR)
             this point there may be conflicting technical details or some
             other lingering ambiguity.
 
-Confirmed (C)   The vulnerability has been acknowledged by the vendor or author
+Confirmed (C)
+            The vulnerability has been acknowledged by the vendor or author
             of the affected technology. The vulnerability may also be
             Confirmed when its existence is confirmed from an external
             event such as publication of functional or proof-of-concept
@@ -332,81 +415,13 @@ Confirmed (C)   The vulnerability has been acknowledged by the vendor or author
 Not Defined (ND)
             Assigning this value to the metric will not influence the
             score. It is a signal to the equation to skip this metric.
-"""}
-]
-
-common_full_options = ['(L)ow', '(M)edium', '(H)igh', 'Not Defined (ND)']
-common_options = ['L', 'M', 'H', 'ND']
-common_scoring = {'L': 0.5, 'M': 1, 'H': 1.51, 'ND': 1}
-
-common_help = """
-These metrics enable the analyst to customize the CVSS score depending on the
-importance of the affected IT asset to a users organization, measured in terms
-of confidentiality, integrity, and availability, That is, if an IT asset
-supports a business function for which availability is most important, the
-analyst can assign a greater value to availability, relative to confidentiality
-and integrity. Each security requirement has three possible values: low,
-medium, or high.
-
-The full effect on the environmental score is determined by the corresponding
-base impact metrics (please note that the base confidentiality, integrity and
-availability impact metrics, themselves, are not changed). That is, these
-metrics modify the environmental score by reweighting the (base)
-confidentiality, integrity, and availability impact metrics. For example, the
-confidentiality impact (C) metric has increased weight if the confidentiality
-requirement (CR) is high. Likewise, the confidentiality impact metric has
-decreased weight if the confidentiality requirement is low. The confidentiality
-impact metric weighting is neutral if the confidentiality requirement is
-medium. This same logic is applied to the integrity and availability
-requirements.
-
-Note that the confidentiality requirement will not affect the environmental
-score if the (base) confidentiality impact is set to none. Also, increasing the
-confidentiality requirement from medium to high will not change the
-environmental score when the (base) impact metrics are set to complete. This is
-because the impact sub score (part of the base score that calculates impact) is
-already at a maximum value of 10.
-
-The greater the security requirement, the higher the score (remember that
-medium is considered the default). These metrics will modify the score as much
-as plus or minus 2.5.
-
-Low (L)         Loss of [confidentiality | integrity | availability] is likely
-            to have only a limited adverse effect on the organization or
-            individuals associated with the organization (e.g., employees,
-            customers).
-
-Medium (M)      Loss of [confidentiality | integrity | availability] is likely
-            to have a serious adverse effect on the organization or
-            individuals associated with the organization (e.g., employees,
-            customers).
-
-High (H)        Loss of [confidentiality | integrity | availability] is likely
-            to have a catastrophic adverse effect on the organization or
-            individuals associated with the organization (e.g., employees,
-            customers).
-
-Not Defined (ND)
-            Assigning this value to the metric will not influence the
-            score. It is a signal to the equation to skip this metric.
-"""
-
-CVSSv2_ENVIRONMENTAL_HELP = """
-Different environments can have an immense bearing on the risk that a
-vulnerability poses to an organization and its stakeholders. The CVSS
-environmental metric group captures the characteristics of a vulnerability that
-are associated with a user's IT environment. Since environmental metrics are
-optional they each include a metric value that has no effect on the score. This
-value is used when the user feels the particular metric does not apply and
-wishes to "skip over" it.
-"""
-
-CVSSv2_ENVIRONMENTAL_GROUP = [
+"""},
     {
         'name': 'CDP',
         'full_name': 'Collateral Damage Potential (CDP)',
-        'full_options': ['(N)one', '(L)ow', 'Low-Medium (LM)',
-            'Medium-High (MH)', '(H)igh', 'Not Defined (ND)'],
+        'group': 'environmental',
+        'full_options': ['(N)one', '(L)ow', '(LM) Low-Medium',
+            '(MH) Medium-High', '(H)igh', '(ND) Not Defined'],
         'options': ['N', 'L', 'LM', 'MH', 'H', 'ND'],
         'scoring': {'N': 0, 'L': 0.1, 'LM': 0.3, 'MH': 0.4, 'H': 0.5, 'ND': 0},
         'help': """
@@ -415,10 +430,10 @@ damage or theft of property or equipment.  The metric may also measure economic
 loss of productivity or revenue. Naturally, the greater the damage potential,
 the higher the vulnerability score.
 
-None (N)        There is no potential for loss of life, physical assets,
+None (N)    There is no potential for loss of life, physical assets,
             productivity or revenue.
 
-Low (L)         A successful exploit of this vulnerability may result in slight
+Low (L)     A successful exploit of this vulnerability may result in slight
             physical or property damage. Or, there may be a slight loss of
             revenue or productivity to the organization.
 
@@ -431,7 +446,7 @@ Medium-High (MH)
             significant physical or property damage or loss. Or, there may
             be a significant loss of revenue or productivity.
 
-High (H)        A successful exploit of this vulnerability may result in
+High (H)    A successful exploit of this vulnerability may result in
             catastrophic physical or property damage and loss. Or, there
             may be a catastrophic loss of revenue or productivity.
 
@@ -445,8 +460,9 @@ Clearly, each organization must determine for themselves the precise meaning of
     {
         'name': 'TD',
         'full_name': 'Target Distribution (TD)',
+        'group': 'environmental',
         'full_options': ['(N)one', '(L)ow', '(M)edium', '(H)igh',
-            'Not Defined (ND)'],
+            '(ND) Not Defined'],
         'options': ['N', 'L', 'M', 'H', 'ND'],
         'scoring': {'N': 0, 'L': 0.25, 'M': 0.75, 'H': 1, 'ND': 1},
         'help': """
@@ -455,17 +471,17 @@ environment-specific indicator in order to approximate the percentage of
 systems that could be affected by the vulnerability. The greater the proportion
 of vulnerable systems, the higher the score.
 
-None (N)        No target systems exist, or targets are so highly specialized
+None (N)    No target systems exist, or targets are so highly specialized
             that they only exist in a laboratory setting. Effectively 0% of
             the environment is at risk.
 
-Low (L)         Targets exist inside the environment, but on a small scale.
+Low (L)     Targets exist inside the environment, but on a small scale.
             Between 1% - 25% of the total environment is at risk.
 
-Medium (M)      Targets exist inside the environment, but on a medium scale.
+Medium (M)  Targets exist inside the environment, but on a medium scale.
             Between 26% - 75% of the total environment is at risk.
 
-High (H)        Targets exist inside the environment on a considerable scale.
+High (H)    Targets exist inside the environment on a considerable scale.
             Between 76% - 100% of the total environment is considered at
             risk.
 
@@ -476,6 +492,7 @@ Not Defined (ND)
     {
         'name': 'CR',
         'full_name': 'Confidentiality Requirement (CR)',
+        'group': 'environmental',
         'full_options': common_full_options,
         'options': common_options,
         'scoring': common_scoring,
@@ -483,6 +500,7 @@ Not Defined (ND)
     {
         'name': 'IR',
         'full_name': 'Integrity Requirement (CR)',
+        'group': 'environmental',
         'full_options': common_full_options,
         'options': common_options,
         'scoring': common_scoring,
@@ -490,32 +508,20 @@ Not Defined (ND)
     {
         'name': 'AR',
         'full_name': 'Availability Requirement (CR)',
+        'group': 'environmental',
         'full_options': common_full_options,
         'options': common_options,
         'scoring': common_scoring,
         'help': common_help}
 ]
 
-CVSSv3_BASE_GROUP = [
-]
-
 CVSSv3_TEMPORAL_HELP = """
 """
-
-CVSSv3_TEMPORAL_GROUP = [
-]
 
 CVSSv3_ENVIRONMENTAL_HELP = """
 """
 
-CVSSv3_ENVIRONMENTAL_GROUP = [
-]
-
-CVSSv3 = \
-    CVSSv3_BASE_GROUP + CVSSv3_TEMPORAL_GROUP + CVSSv3_ENVIRONMENTAL_GROUP
-
-CVSSv2 = \
-    CVSSv2_BASE_GROUP + CVSSv2_TEMPORAL_GROUP + CVSSv2_ENVIRONMENTAL_GROUP
+CVSSv3 = []
 
 DETAIL_FLAG = False
 COLOR_FLAG = False
@@ -562,8 +568,8 @@ def input_wrapper(prompt):
 
 def parse_v2_check_required(cvss):
     missing_metrics = []
-    for metric in CVSSv2_BASE_GROUP:
-        if metric['name'] not in cvss:
+    for metric in CVSSv2:
+        if metric['group'] == 'base' and metric['name'] not in cvss:
             missing_metrics.append(metric['full_name'])
     if missing_metrics:
         error('Missing required metrics\n\t' + '\n\t'.join(missing_metrics))
@@ -603,13 +609,16 @@ def parse_v2(vector):
 
 def cvss_v2_to_vector(cvss):
     pieces = []
-    for metric in [m['name'] for m in CVSSv2_BASE_GROUP]:
+    base = [m for m in CVSSv2 if m['group'] == 'base']
+    temporal = [m for m in CVSSv2 if m['group'] == 'temporal']
+    environmental = [m for m in CVSSv2 if m['group'] == 'environmental']
+    for metric in [m['name'] for m in base]:
         pieces.append(metric + ':' + cvss[metric])
     if contains_v2_temporal(cvss):
-        for metric in [m['name'] for m in CVSSv2_TEMPORAL_GROUP]:
+        for metric in [m['name'] for m in temporal]:
             pieces.append(metric + ':' + cvss[metric])
     if contains_v2_environmental(cvss):
-        for metric in [m['name'] for m in CVSSv2_TEMPORAL_GROUP]:
+        for metric in [m['name'] for m in environmental]:
             pieces.append(metric + ':' + cvss[metric])
     return '/'.join(pieces)
 
@@ -659,15 +668,19 @@ def score_v2_environmental(exploitability, f_impact, cvss):
 
 
 def contains_v2_temporal(cvss):
-    return any(
-        cvss[metric] != 'ND' for metric in [
-            m['name'] for m in CVSSv2_TEMPORAL_GROUP])
+    for m in CVSSv2:
+        if m['group'] == 'temporal' \
+                    and m['name'] in cvss and cvss[m['name']] != 'ND':
+            return True
+    return False
 
 
 def contains_v2_environmental(cvss):
-    return any(
-        cvss[metric] != 'ND' for metric in [
-            m['name'] for m in CVSSv2_ENVIRONMENTAL_GROUP])
+    for m in CVSSv2:
+        if m['group'] == 'environmental' \
+                    and m['name'] in cvss and cvss[m['name']] != 'ND':
+            return True
+    return False
 
 
 def score_v2(cvss):
@@ -761,11 +774,14 @@ def interactive_continue_with(group_name, group_help):
 def interactive():
     print("Let's build some CVSS!")
     cvss = {}
-    interactive_go_through_group(CVSSv2_BASE_GROUP, cvss)
+    base = [m for m in CVSSv2 if m['group'] == 'base']
+    temporal = [m for m in CVSSv2 if m['group'] == 'temporal']
+    environmental = [m for m in CVSSv2 if m['group'] == 'environmental']
+    interactive_go_through_group(base, cvss)
     if interactive_continue_with('Temporal', CVSSv2_TEMPORAL_HELP):
-        interactive_go_through_group(CVSSv2_TEMPORAL_GROUP, cvss)
+        interactive_go_through_group(temporal, cvss)
     if interactive_continue_with('Environmental', CVSSv2_ENVIRONMENTAL_HELP):
-        interactive_go_through_group(CVSSv2_ENVIRONMENTAL_GROUP, cvss)
+        interactive_go_through_group(environmental, cvss)
     parse_v2_fill_not_defined(cvss)
     print('\nVector: ' + cvss_v2_to_vector(cvss))
     return cvss
