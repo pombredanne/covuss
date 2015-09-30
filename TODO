@@ -5,3 +5,4 @@ testing with expect?
 explain vector?
 cvss v3 support
 cvss v1 support
+library separation to allow importing ?

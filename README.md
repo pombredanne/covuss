@@ -16,10 +16,10 @@ Go to https://github.com/mkopta/covuss/releases
 
 You can choose from these options:
 
-* RPM package for Fedora 22 (covuss-1.1-1.fc22.noarch.rpm)
-* RPM package for CentOS 7 (covuss-1.1-1.el7.centos.noarch.rpm)
-* RPM package for CentOS 6 (covuss-1.1-1.el6.noarch.rpm)
-* Source distribution (covuss-1.1.tgz)
+* RPM package for Fedora 22 (covuss-1.2-1.fc22.noarch.rpm)
+* RPM package for CentOS 7 (covuss-1.2-1.el7.centos.noarch.rpm)
+* RPM package for CentOS 6 (covuss-1.2-1.el6.noarch.rpm)
+* Source distribution (covuss-1.2.tgz)
 
 ## Installation
 
@@ -27,22 +27,22 @@ You can choose from these options:
 
 On CentOS 6:
 
-    $ sudo yum install covuss-1.1-1.el6.noarch.rpm
+    $ sudo yum install covuss-1.2-1.el6.noarch.rpm
 
 On CentOS 7:
 
-    $ sudo yum install covuss-1.1-1.el7.centos.noarch.rpm
+    $ sudo yum install covuss-1.2-1.el7.centos.noarch.rpm
 
 On Fedora 22:
 
-    $ sudo dnf install covuss-1.1-1.el7.centos.noarch.rpm
+    $ sudo dnf install covuss-1.2-1.fc22.noarch.rpm
 
 ### From source
 
 First unpack source and enter the directory.
 
-    $ tar xf covuss-1.1.tgz
-    $ cd covuss-1.1
+    $ tar xf covuss-1.2.tgz
+    $ cd covuss-1.2
 
 To install system-wide to `/usr/local`, simply call `make install` as root or with sudo.
 
