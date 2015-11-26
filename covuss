@@ -521,7 +521,155 @@ CVSSv3_TEMPORAL_HELP = """
 CVSSv3_ENVIRONMENTAL_HELP = """
 """
 
-CVSSv3 = []
+CVSSv3 = [
+    {
+        'name': 'AV',
+        'full_name': 'Attack Vector (AV)',
+        'group': 'base',
+        'full_options': ['(N)etwork', '(A)djacent', '(L)ocal', '(P)hysical'],
+        'options': ['N', 'A', 'L', 'P'],
+        'scoring': {'N': 0.85, 'A': 0.62, 'L': 0.55, 'P': 0.2},
+        'help': """
+This metric reflects the context by which vulnerability exploitation
+is possible. This metric value (and consequently the Base score) will be larger
+the more remote (logically, and physically) an attacker can be in order
+to exploit the vulnerable component. The assumption is that the number
+of potential attackers for a vulnerability that could be exploited from across
+the Internet is larger than the number of potential attackers that could
+exploit a vulnerability requiring physical access to a device, and therefore
+warrants a greater score.
+
+Network (N)
+            A vulnerability exploitable with network access means the
+            vulnerable component is bound to the network stack and the
+            attacker's path is through OSI layer 3 (the network layer).
+            Such a vulnerability is often termed "remotely exploitable" and can
+            be thought of as an attack being exploitable one or more network
+            hops away (e.g. across layer 3 boundaries from routers). An example
+            of a network attack is an attacker causing a denial of service
+            (DoS) by sending a specially crafted TCP packet from across the
+            public Internet (e.g. CVE 2004 0230).
+
+Adjacent (A)
+            A vulnerability exploitable with adjacent network access means
+            the vulnerable component is bound to the network stack, however
+            the attack is limited to the same shared physical (e.g. Bluetooth,
+            IEEE 802.11), or logical (e.g. local IP subnet) network, and cannot
+            be performed across an OSI layer 3 boundary (e.g. a router).
+            An example of an Adjacent attack would be an ARP (IPv4) or neighbor
+            discovery (IPv6) flood leading to a denial of service on the local
+            LAN segment. See also CVE 2013 6014.
+
+Local (L)   A vulnerability exploitable with Local access means that
+            the vulnerable component is not bound to the network stack, and
+            the attacker's path is via read/write/execute capabilities. In some
+            cases, the attacker may be logged in locally in order to exploit
+            the vulnerability, otherwise, she may rely on User Interaction to
+            execute a malicious file.
+
+Physical (P)
+            A vulnerability exploitable with Physical access requires
+            the attacker to physically touch or manipulate the vulnerable
+            component. Physical interaction may be brief (e.g. evil maid
+            attack) or persistent. An example of such an attack is a cold boot
+            attack which allows an attacker to access to disk encryption keys
+            after gaining physical access to the system, or peripheral attacks
+            such as Firewire/USB Direct Memory Access attacks.
+"""},
+    {
+        'name': 'AC',
+        'full_name': 'Attack Complexity (AC)',
+        'group': 'base',
+        'full_options': ['(L)ow', '(H)igh'],
+        'options': ['L', 'H'],
+        'scoring': {'L': 0.77, 'H': 0.44},
+        'help': """
+This metric describes the conditions beyond the attacker's control that must
+exist in order to exploit the vulnerability. As described below, such
+conditions may require the collection of more information about the target, the
+presence of certain system configuration settings, or computational exceptions.
+Importantly, the assessment of this metric excludes any requirements for user
+interaction in order to exploit the vulnerability (such conditions are captured
+in the User Interaction metric). This metric value is largest for the least
+complex attacks.
+
+Low (L)     Specialized access conditions or extenuating circumstances do not
+            exist. An attacker can expect repeatable success against
+            the vulnerable component.
+
+High (H)    A successful attack depends on conditions beyond the attacker's
+            control. That is, a successful attack cannot be accomplished at
+            will, but requires the attacker to invest in some measurable amount
+            of effort in preparation or execution against the vulnerable
+            component before a successful attack can be expected. For example,
+            a successful attack may depend on an attacker overcoming any of the
+            following conditions:
+            - The attacker must conduct target-specific reconnaissance. For
+              example, on target configuration settings, sequence numbers,
+              shared secrets, etc.
+            - The attacker must prepare the target environment to improve
+              exploit reliability. For example, repeated exploitation to win a
+              race condition, or overcoming advanced exploit mitigation
+              techniques.
+            - The attacker must inject herself into the logical network path
+              between the target and the resource requested by the victim in
+              order to read and/or modify network communications (e.g. man in
+              the middle attack).
+"""},
+    {
+        'name': 'PR',
+        'full_name': 'Privileges Required (PR)',
+        'group': 'base',
+        'full_options': ['(N)one', '(L)ow', '(H)igh'],
+        'options': ['N', 'L', 'H'],
+        'scoring': {'N': 0.85, 'L': 0.62, 'H': 0.27},
+        'help': """
+This metric describes the level of privileges an attacker must possess before
+successfully exploiting the vulnerability. This metric if greatest if no
+privileges are required.
+
+None (N)    The attacker is unauthorized prior to attack, and therefore does
+            not require any access to settings or files to carry out an attack.
+
+Low (L)     The attacker is authorized with (i.e. requires) privileges that
+            provide basic user capabilities that could normally affect only
+            settings and files owned by a user. Alternatively, an attacker with
+            Low privileges may have the ability to cause an impact only to
+            non-sensitive resources.
+
+High (H)    The attacker is authorized with (i.e. requires) privileges that
+            provide significant (e.g. administrative) control over the
+            vulnerable component that could affect component-wide settings and
+            files.
+"""},
+    {
+        'name': 'UI',
+        'full_name': 'User Interaction (UI)',
+        'group': 'base',
+        'full_options': ['(N)one', '(R)equired'],
+        'options': ['N', 'R'],
+        'scoring': {'N': 0.85, 'R': 0.62},
+        'help': """
+This metric captures the requirement for a user, other than the attacker, to
+participate in the successful compromise of the vulnerable component. This
+metric determines whether the vulnerability can be exploited solely at the will
+of the attacker, or whether a separate user (or user-initiated process) must
+participate in some manner. This metric value is greatest when no user
+interaction is required.
+
+None (N)    The vulnerable system can be exploited without interaction
+            from any user.
+
+Required (R)
+            Successful exploitation of this vulnerability requires a user
+            to take some action before the vulnerability can be exploited.
+            For example, a successful exploit may only be possible during
+            the installation of an application by a system administrator.
+"""}
+# TODO Base S C I A 
+# TODO Temp E RL RC
+# TODO Envi CR CI CA MAV MAC MPR MUI MS MC MI MA
+]
 
 DETAIL_FLAG = False
 COLOR_FLAG = False
