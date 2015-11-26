@@ -1,8 +1,15 @@
+sure
+----
+cvss v3 support
+
+maybe
+-----
 packaging
     deb
     pkgbuild
-testing with expect?
 explain vector?
-cvss v3 support
-cvss v1 support
 library separation to allow importing ?
+
+probably not
+------------
+cvss v1 support
