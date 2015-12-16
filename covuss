@@ -862,6 +862,9 @@ def arg_handling():
         "-i", "--interactive", help="enter interactive mode",
         action="store_true", required=False)
     group.add_argument(
+        "-v", "--version", help="version of CVSS (default is 2)",
+        required=False, default=2, type=int, choices=[2, 3])
+    group.add_argument(
         "vector", metavar="CVSS VECTOR", help="CVSS vector", nargs='?')
     return parser.parse_args()
 
@@ -940,6 +943,9 @@ if __name__ == "__main__":
         args = arg_handling()
         DETAIL_FLAG = args.interactive or args.vector is None or args.detail
         COLOR_FLAG = bool(args.pretty)
+        if args.version == 3:
+            print('Not implemented yet. Sorry.')
+            sys.exit(1)
         cvss = \
             parse_v2(args.vector) if args.vector is not None else interactive()
         overall_cvss_score = score_v2(cvss)
